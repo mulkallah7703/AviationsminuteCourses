@@ -1,4 +1,6 @@
 import { ActionFooter } from './ActionFooter'
+import { FinalLessonCompletion } from './FinalLessonCompletion'
+import { FinalInteractiveExam } from './FinalInteractiveExam'
 import { LessonContent } from './LessonContent'
 import { LessonHeader } from './LessonHeader'
 import { LessonMeta } from './LessonMeta'
@@ -43,6 +45,13 @@ export function LearningLayout({
           />
         ) : isInteractiveStep && activeUnit.key === 'chemical' ? (
           <LessonFlow onExit={onExitInteractiveStep} onFinish={onFinishLessonFlow} />
+        ) : isInteractiveStep && activeUnit.key === 'interactive-assessment' ? (
+          <FinalInteractiveExam onExitToCourse={() => onExitInteractiveStep()} />
+        ) : activeUnit.key === 'interactive-assessment' ? (
+          <FinalLessonCompletion
+            onPrimaryAction={onStartLesson}
+            onReviewLessons={() => onSelectUnit('chemical')}
+          />
         ) : (
           <>
             <LessonHeader

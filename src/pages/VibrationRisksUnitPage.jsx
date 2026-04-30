@@ -99,6 +99,27 @@ const VIBRATION_RISK_TIMELINE = [
   },
 ]
 
+const VIBRATION_HERO_INFO_CARDS = [
+  {
+    id: 'source',
+    icon: '🏗️',
+    title: 'مصدر الخطر',
+    text: 'تنتج الاهتزازات من المعدات الثقيلة والأدوات اليدوية',
+  },
+  {
+    id: 'health',
+    icon: '🩺',
+    title: 'التأثير الصحي',
+    text: 'التعرض المستمر قد يؤدي إلى مشاكل في الأعصاب والدورة الدموية',
+  },
+  {
+    id: 'prevention',
+    icon: '🛡️',
+    title: 'الوقاية',
+    text: 'فهم مصادر الاهتزاز يساعد على تقليل المخاطر',
+  },
+]
+
 function loadStored() {
   try {
     const raw = localStorage.getItem(LS_KEY)
@@ -110,16 +131,27 @@ function loadStored() {
 
 function SplitFaceHero({ src }) {
   const [broken, setBroken] = useState(false)
-  if (broken) {
-    return <div className="vr-split-face" aria-hidden />
-  }
+
   return (
-    <img
-      className="vr-split-face__img"
-      src={src}
-      alt=""
-      onError={() => setBroken(true)}
-    />
+    <section className="vr-split-face" dir="rtl" aria-label="مقارنة التعرض للاهتزاز">
+      <div className="vr-split-face__half vr-split-face__half--low">
+        {!broken ? (
+          <img className="vr-split-face__img" src={src} alt="" onError={() => setBroken(true)} />
+        ) : (
+          <div className="vr-split-face__fallback" aria-hidden />
+        )}
+        <span className="vr-split-face__label">اهتزاز منخفض</span>
+      </div>
+      <div className="vr-split-face__half vr-split-face__half--high">
+        {!broken ? (
+          <img className="vr-split-face__img vr-split-face__img--vibrate" src={src} alt="" onError={() => setBroken(true)} />
+        ) : (
+          <div className="vr-split-face__fallback vr-split-face__fallback--high" aria-hidden />
+        )}
+        <span className="vr-split-face__label vr-split-face__label--danger">اهتزاز عالي</span>
+      </div>
+      <div className="vr-split-face__overlay" aria-hidden />
+    </section>
   )
 }
 
@@ -236,21 +268,33 @@ export function VibrationRisksUnitPage() {
         <div className="vr-unit-root fade-slide-in" key={stepNum}>
           {stepNum === 1 ? (
             <>
-              <StepLayout
-                programHeader={{
-                  englishSubtitle: 'Introduction to Vibration Hazards',
-                  progressPercent: 14,
-                }}
-              >
-                <div className="vr-white-card">
+              <StepLayout>
+                <div className="vr-white-card vr-hero-page">
                   <SplitFaceHero src="/motion1.png" />
-                  <div className="vr-card-pad" dir="rtl">
-                    <h2 className="vr-card-title">فهم أساسيات المخاطر الفيزيائية (الاهتزازات)</h2>
-                    <ul className="vr-bullet-list">
-                      <li>تنتج الاهتزازات من استخدام المعدات والآلات الثقيلة.</li>
-                      <li>التعرض المستمر قد يؤدي إلى مشاكل صحية طويلة المدى.</li>
-                      <li>من المهم فهم مصادر الاهتزازات لتقليل المخاطر.</li>
-                    </ul>
+                  <div className="vr-card-pad vr-card-pad--hero" dir="rtl">
+                    <header className="vr-hero-head">
+                      <h2 className="vr-card-title vr-card-title--hero">فهم مخاطر الاهتزازات في بيئة العمل</h2>
+                      <p className="vr-hero-subtitle">
+                        كيف تؤثر الاهتزازات على صحة العامل؟ ولماذا يجب الانتباه لها؟
+                      </p>
+                    </header>
+
+                    <section className="vr-hero-info-grid" role="list" aria-label="ملخص الدرس">
+                      {VIBRATION_HERO_INFO_CARDS.map((card) => (
+                        <article key={card.id} className="vr-hero-info-card" role="listitem">
+                          <span className="vr-hero-info-card__icon" aria-hidden>
+                            {card.icon}
+                          </span>
+                          <h3>{card.title}</h3>
+                          <p>{card.text}</p>
+                        </article>
+                      ))}
+                    </section>
+
+                    <aside className="vr-hero-highlight" role="note">
+                      <strong>💡 معلومة مهمة</strong>
+                      <p>التعرض الطويل للاهتزازات قد يؤدي إلى أضرار دائمة.</p>
+                    </aside>
                   </div>
                 </div>
               </StepLayout>
