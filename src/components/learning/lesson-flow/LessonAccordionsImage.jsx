@@ -35,7 +35,6 @@ export function LessonAccordionsImage() {
   return (
     <div className="lesson-accordions-image-screen">
       <header className="lesson-accordions-image-header">
-        <h2>Accordions &amp; Image</h2>
         <p>
           تعرض هذه الصفحة تأثيرات المواد الكيميائية على الصحة والبيئة، مع شرح مبسط يساعد المستخدم على
           فهم المخاطر وكيفية الوقاية منها.

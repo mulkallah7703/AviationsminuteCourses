@@ -3,8 +3,8 @@ export function StepNavigation({
   onNext,
   showPrevious = true,
   nextDisabled = false,
-  nextLabel = 'Next',
-  previousLabel = 'Previous',
+  nextLabel = 'التالي',
+  previousLabel = 'السابق',
   className = '',
 }) {
   return (

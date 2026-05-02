@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { useCourseProgress } from '../context/CourseProgressContext'
 import { learningUnits } from '../data/courseData'
 import { SidebarNavigation } from '../components/learning/SidebarNavigation'
 import { StepNavigation } from '../components/course-ui/StepNavigation'
@@ -220,6 +221,7 @@ function loadStored() {
 
 export function RadiationRisksUnitPage() {
   const navigate = useNavigate()
+  const { percent, recordInteractive, recordLessonComplete } = useCourseProgress()
   const { step } = useParams()
   const stepNum = parseInt(step, 10)
 
@@ -240,13 +242,11 @@ export function RadiationRisksUnitPage() {
     }
   }, [answers, stepNum, validStep])
 
-  const progressPercent = useMemo(
-    () =>
-      Math.round(
-        ((learningUnits.findIndex((u) => u.key === 'xray') + 1) / learningUnits.length) * 100,
-      ),
-    [],
-  )
+  useEffect(() => {
+    if (answers.radiationClassificationFeedback === 'correct') {
+      recordInteractive('rad-learning-lab')
+    }
+  }, [answers.radiationClassificationFeedback, recordInteractive])
 
   const go = useCallback(
     (n) => {
@@ -264,9 +264,11 @@ export function RadiationRisksUnitPage() {
   }, [go, navigate, stepNum])
 
   const onNext = useCallback(() => {
+    if (stepNum === 4) recordInteractive('rad-natural')
+    if (stepNum === 5) recordInteractive('rad-body')
     if (stepNum >= TOTAL_PAGES) return
     go(stepNum + 1)
-  }, [go, stepNum])
+  }, [go, stepNum, recordInteractive])
 
   if (!validStep) {
     return <Navigate to="/course/radiation-risks/1" replace />
@@ -284,7 +286,7 @@ export function RadiationRisksUnitPage() {
     onPrevious,
     onNext,
     showPrevious: true,
-    previousLabel: 'Previous',
+    previousLabel: 'السابق',
     nextLabel: 'التالي',
     className: 'rr-step-nav',
   }
@@ -303,7 +305,7 @@ export function RadiationRisksUnitPage() {
         units={learningUnits}
         activeUnitKey="xray"
         onSelectUnit={unitNav}
-        progressPercent={progressPercent}
+        progressPercent={percent}
         courseHeading="برنامج التوعية التفاعلي: التعرف على أنواع المخاطر المهنية والاستجابة الآمنة"
       />
 
@@ -701,7 +703,10 @@ export function RadiationRisksUnitPage() {
               </RadiationChrome>
               <StepNavigation
                 {...navProps}
-                onNext={() => navigate('/course/learn?unit=interactive-assessment')}
+                onNext={() => {
+                  recordLessonComplete('xray')
+                  navigate('/course/learn?unit=interactive-assessment')
+                }}
                 nextDisabled={false}
                 className="rr-step-nav rr-step-nav--learning-lab"
               />

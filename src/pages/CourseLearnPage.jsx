@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useCourseProgress } from '../context/CourseProgressContext'
 import { learningUnits } from '../data/courseData'
 import { LearningLayout } from '../components/learning/LearningLayout'
 
 export function CourseLearnPage() {
   const navigate = useNavigate()
+  const { percent, recordLessonComplete, recordBonus } = useCourseProgress()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [startedUnits, setStartedUnits] = useState([])
   const [isInteractiveStep, setIsInteractiveStep] = useState(false)
   const [lessonIndexInModule, setLessonIndexInModule] = useState(1)
+  const skipInteractiveResetOnUnitChangeRef = useRef(false)
 
   const currentUnitKey = searchParams.get('unit') ?? 'chemical'
   const showPhysicalModuleIntro = currentUnitKey === 'physical' && searchParams.get('intro') === '1'
@@ -19,7 +21,6 @@ export function CourseLearnPage() {
     [currentUnitKey],
   )
 
-  const progressPercent = Math.round((startedUnits.length / learningUnits.length) * 100)
   const activeUnitIndex = learningUnits.findIndex((unit) => unit.key === activeUnit.key)
   const selectUnit = (unitKey) => {
     if (unitKey === 'extreme-temperature') {
@@ -51,6 +52,7 @@ export function CourseLearnPage() {
 
   const handleLessonFlowFinish = () => {
     if (activeUnit.key === 'chemical') {
+      recordLessonComplete('chemical')
       setSearchParams({ unit: 'physical', intro: '1' })
       setIsInteractiveStep(false)
       setLessonIndexInModule(1)
@@ -64,17 +66,30 @@ export function CourseLearnPage() {
     setLessonIndexInModule((n) => n + 1)
   }
 
+  const handlePhysicalModuleIntroBack = () => {
+    skipInteractiveResetOnUnitChangeRef.current = true
+    setSearchParams({ unit: 'chemical' })
+    setIsInteractiveStep(true)
+    setLessonIndexInModule(1)
+  }
+
+  const handlePhysicalRisksPage2Back = () => {
+    setSearchParams({ unit: 'physical', intro: '1' })
+    setLessonIndexInModule(1)
+  }
+
   const startLesson = () => {
-    setStartedUnits((current) => {
-      if (current.includes(activeUnit.key)) return current
-      return [...current, activeUnit.key]
-    })
+    recordBonus('started-course')
     setIsInteractiveStep(true)
   }
 
   useEffect(() => {
-    setIsInteractiveStep(false)
     setLessonIndexInModule(1)
+    if (skipInteractiveResetOnUnitChangeRef.current) {
+      skipInteractiveResetOnUnitChangeRef.current = false
+      return
+    }
+    setIsInteractiveStep(false)
   }, [activeUnit.key])
 
   return (
@@ -82,7 +97,7 @@ export function CourseLearnPage() {
       units={learningUnits}
       activeUnit={activeUnit}
       onSelectUnit={selectUnit}
-      progressPercent={progressPercent}
+      progressPercent={percent}
       onNextLesson={goToNext}
       onFinishLessonFlow={handleLessonFlowFinish}
       onStartLesson={startLesson}
@@ -91,7 +106,9 @@ export function CourseLearnPage() {
       onExitInteractiveStep={() => setIsInteractiveStep(false)}
       showPhysicalModuleIntro={showPhysicalModuleIntro}
       onPhysicalModuleIntroNext={handlePhysicalModuleIntroNext}
+      onPhysicalModuleIntroBack={handlePhysicalModuleIntroBack}
       showPhysicalRisksPage2={showPhysicalRisksPage2}
+      onPhysicalRisksPage2Back={handlePhysicalRisksPage2Back}
       lessonIndexInModule={lessonIndexInModule}
     />
   )

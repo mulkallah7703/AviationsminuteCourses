@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { useCourseProgress } from '../context/CourseProgressContext'
 import { learningUnits } from '../data/courseData'
 import { SidebarNavigation } from '../components/learning/SidebarNavigation'
 import { StepNavigation } from '../components/course-ui/StepNavigation'
@@ -157,6 +158,7 @@ function SplitFaceHero({ src }) {
 
 export function VibrationRisksUnitPage() {
   const navigate = useNavigate()
+  const { percent, recordLessonComplete } = useCourseProgress()
   const { step } = useParams()
   const stepNum = parseInt(step, 10)
 
@@ -178,14 +180,6 @@ export function VibrationRisksUnitPage() {
       /* ignore */
     }
   }, [answers, stepNum, validStep])
-
-  const progressPercent = useMemo(
-    () =>
-      Math.round(
-        ((learningUnits.findIndex((u) => u.key === 'vibration') + 1) / learningUnits.length) * 100,
-      ),
-    [],
-  )
 
   const go = useCallback(
     (n) => {
@@ -260,7 +254,7 @@ export function VibrationRisksUnitPage() {
           else if (unitKey === 'xray') navigate('/course/radiation-risks/1')
           else navigate(`/course/learn?unit=${unitKey}`)
         }}
-        progressPercent={progressPercent}
+        progressPercent={percent}
         courseHeading="برنامج التوعية التفاعلي: التعرف على أنواع المخاطر المهنية والاستجابة الآمنة"
       />
 
@@ -504,7 +498,10 @@ export function VibrationRisksUnitPage() {
               <StepNavigation
                 {...navProps}
                 nextDisabled={!p5IsCorrect}
-                onNext={() => navigate('/course/electrical-risks/1')}
+                onNext={() => {
+                  recordLessonComplete('vibration')
+                  navigate('/course/electrical-risks/1')
+                }}
               />
             </>
           ) : null}

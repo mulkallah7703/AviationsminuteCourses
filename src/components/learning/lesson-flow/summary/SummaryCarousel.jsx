@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
 import { SummaryCarouselCard } from './SummaryCarouselCard'
 
 const SUMMARY_ITEMS = [
@@ -14,87 +13,20 @@ const SUMMARY_ITEMS = [
   'اتباع إجراءات السلامة يساهم في حماية العاملين وتقليل الحوادث.',
 ]
 
+/** Fixed strip of three summary cards (no carousel controls). */
+const VISIBLE_CARDS = SUMMARY_ITEMS.slice(0, 3)
+
 export function SummaryCarousel() {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [stepPx, setStepPx] = useState(0)
-  const viewportRef = useRef(null)
-  const trackRef = useRef(null)
-  const visibleCards = 3
-  const totalCards = SUMMARY_ITEMS.length
-  const maxIndex = Math.max(0, totalCards - visibleCards)
-
-  const centerIndex = useMemo(
-    () => Math.min(currentIndex + Math.floor(visibleCards / 2), SUMMARY_ITEMS.length - 1),
-    [currentIndex],
-  )
-
-  useEffect(() => {
-    const measure = () => {
-      const track = trackRef.current
-      if (!track) return
-      const cards = track.querySelectorAll('.card')
-      if (cards.length === 0) return
-      const cardWidth = cards[0].getBoundingClientRect().width
-      setStepPx(cardWidth)
-    }
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [])
-
-  useEffect(() => {
-    setCurrentIndex((prev) => Math.min(prev, maxIndex))
-  }, [maxIndex])
-
-  const clampedIndex = Math.max(0, Math.min(currentIndex, maxIndex))
-  const moveX = clampedIndex * stepPx
-
-  const goPrev = () => {
-    if (clampedIndex > 0) {
-      setCurrentIndex((prev) => Math.max(prev - 1, 0))
-    }
-  }
-
-  const goNext = () => {
-    if (clampedIndex < maxIndex) {
-      setCurrentIndex((prev) => Math.min(prev + 1, maxIndex))
-    }
-  }
-
   return (
     <div className="summary-carousel-wrapper">
-      <div className="summary-carousel">
-        <button
-          type="button"
-          className="summary-carousel-arrow summary-carousel-arrow--prev summary-carousel-btn left-btn"
-          onClick={goPrev}
-          aria-label="العنصر السابق"
-          disabled={clampedIndex === 0}
-        >
-          ‹
-        </button>
-
-        <div className="summary-carousel-stage carousel-container carousel-viewport" ref={viewportRef}>
-          <div
-            className="summary-carousel-track carousel-track"
-            style={{ transform: `translateX(-${moveX}px)` }}
-            ref={trackRef}
-          >
-            {SUMMARY_ITEMS.map((text, idx) => (
-              <SummaryCarouselCard key={idx} text={text} isActive={idx === centerIndex} />
+      <div className="summary-carousel summary-carousel--static">
+        <div className="summary-carousel-stage carousel-container carousel-viewport">
+          <div className="summary-carousel-track carousel-track summary-carousel-track--static">
+            {VISIBLE_CARDS.map((text, idx) => (
+              <SummaryCarouselCard key={idx} text={text} isActive={idx === 1} />
             ))}
           </div>
         </div>
-
-        <button
-          type="button"
-          className="summary-carousel-arrow summary-carousel-arrow--next summary-carousel-btn right-btn"
-          onClick={goNext}
-          aria-label="العنصر التالي"
-          disabled={clampedIndex === maxIndex}
-        >
-          ›
-        </button>
       </div>
     </div>
   )

@@ -2,8 +2,8 @@ export function LessonLayoutWrapper({
   children,
   onPrevious,
   onNext,
-  previousLabel = 'Previous',
-  nextLabel = 'Next',
+  previousLabel = 'السابق',
+  nextLabel = 'التالي',
   isNextDisabled = false,
 }) {
   return (

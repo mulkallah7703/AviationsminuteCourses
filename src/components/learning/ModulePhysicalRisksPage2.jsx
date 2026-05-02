@@ -18,7 +18,7 @@ const STEPS = [
   },
 ]
 
-export function ModulePhysicalRisksPage2() {
+export function ModulePhysicalRisksPage2({ onPrevious }) {
   const navigate = useNavigate()
 
   return (
@@ -59,10 +59,17 @@ export function ModulePhysicalRisksPage2() {
       <footer className="physical-risks-p2__footer">
         <button
           type="button"
+          className="ghost step-btn physical-risks-p2__prev"
+          onClick={() => onPrevious?.()}
+        >
+          السابق
+        </button>
+        <button
+          type="button"
           className="primary step-btn physical-risks-p2__next"
           onClick={() => navigate('/course/physical-risks/types')}
         >
-          Next
+          التالي
         </button>
       </footer>
     </div>

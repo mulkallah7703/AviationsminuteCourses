@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { useCourseProgress } from '../context/CourseProgressContext'
 import { learningUnits } from '../data/courseData'
 import { SidebarNavigation } from '../components/learning/SidebarNavigation'
 import { PageLayout } from '../components/course-ui/PageLayout'
@@ -124,6 +125,7 @@ function EtInteractiveSummaryCards() {
 
 export function ExtremeTemperatureUnitPage() {
   const navigate = useNavigate()
+  const { percent, recordLessonComplete } = useCourseProgress()
   const { step } = useParams()
   const stepNum = parseInt(step, 10)
 
@@ -140,11 +142,6 @@ export function ExtremeTemperatureUnitPage() {
       /* ignore */
     }
   }, [answers, stepNum, validStep])
-
-  const progressPercent = useMemo(
-    () => Math.round(((learningUnits.findIndex((u) => u.key === 'extreme-temperature') + 1) / learningUnits.length) * 100),
-    [],
-  )
 
   const go = useCallback(
     (n) => {
@@ -188,7 +185,7 @@ export function ExtremeTemperatureUnitPage() {
           else if (unitKey === 'xray') navigate('/course/radiation-risks/1')
           else navigate(`/course/learn?unit=${unitKey}`)
         }}
-        progressPercent={progressPercent}
+        progressPercent={percent}
         courseHeading="برنامج التوعية التفاعلي: التعرف على أنواع المخاطر المهنية والاستجابة الآمنة"
       />
 
@@ -299,9 +296,11 @@ export function ExtremeTemperatureUnitPage() {
               </PageLayout>
               <StepNavigation
                 onPrevious={onPrevious}
-                onNext={() => navigate('/course/vibration-risks/1')}
+                onNext={() => {
+                  recordLessonComplete('extreme-temperature')
+                  navigate('/course/vibration-risks/1')
+                }}
                 showPrevious
-                nextLabel="Next"
               />
             </>
           ) : null}

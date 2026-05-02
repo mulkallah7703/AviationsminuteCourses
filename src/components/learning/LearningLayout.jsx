@@ -22,7 +22,9 @@ export function LearningLayout({
   onExitInteractiveStep,
   showPhysicalModuleIntro,
   onPhysicalModuleIntroNext,
+  onPhysicalModuleIntroBack,
   showPhysicalRisksPage2,
+  onPhysicalRisksPage2Back,
   lessonIndexInModule,
 }) {
   return (
@@ -37,10 +39,11 @@ export function LearningLayout({
 
       <main className="learning-main">
         {showPhysicalRisksPage2 ? (
-          <ModulePhysicalRisksPage2 />
+          <ModulePhysicalRisksPage2 onPrevious={onPhysicalRisksPage2Back} />
         ) : showPhysicalModuleIntro ? (
           <ModuleIntroPhysical
             onNext={onPhysicalModuleIntroNext}
+            onPrevious={onPhysicalModuleIntroBack}
             lessonStep={lessonIndexInModule}
           />
         ) : isInteractiveStep && activeUnit.key === 'chemical' ? (

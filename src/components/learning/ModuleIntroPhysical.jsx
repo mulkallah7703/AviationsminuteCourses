@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 const DEMO_AUDIO =
   'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3'
 
-export function ModuleIntroPhysical({ onNext, lessonStep = 1 }) {
+export function ModuleIntroPhysical({ onNext, onPrevious, lessonStep = 1 }) {
   const audioRef = useRef(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -71,8 +71,15 @@ export function ModuleIntroPhysical({ onNext, lessonStep = 1 }) {
       </div>
 
       <footer className="module-intro-physical__footer">
+        <button
+          type="button"
+          className="ghost step-btn module-intro-physical__prev"
+          onClick={() => onPrevious?.()}
+        >
+          السابق
+        </button>
         <button type="button" className="primary step-btn module-intro-physical__next" onClick={onNext}>
-          Next
+          التالي
         </button>
       </footer>
     </div>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { useCourseProgress } from '../context/CourseProgressContext'
 import { learningUnits } from '../data/courseData'
 import { SidebarNavigation } from '../components/learning/SidebarNavigation'
 import { StepNavigation } from '../components/course-ui/StepNavigation'
@@ -214,6 +215,7 @@ function TripleGallery({ srcs }) {
 
 export function ElectricalRisksUnitPage() {
   const navigate = useNavigate()
+  const { percent, recordLessonComplete } = useCourseProgress()
   const { step } = useParams()
   const stepNum = parseInt(step, 10)
 
@@ -232,14 +234,6 @@ export function ElectricalRisksUnitPage() {
       /* ignore */
     }
   }, [answers, stepNum, validStep])
-
-  const progressPercent = useMemo(
-    () =>
-      Math.round(
-        ((learningUnits.findIndex((u) => u.key === 'electricity') + 1) / learningUnits.length) * 100,
-      ),
-    [],
-  )
 
   const go = useCallback(
     (n) => {
@@ -265,6 +259,11 @@ export function ElectricalRisksUnitPage() {
     setAnswers((prev) => ({ ...prev, electricalClassification: id }))
   }, [])
 
+  const activeStepData = useMemo(
+    () => stepsData.find((s) => s.id === activeStep) ?? stepsData[0],
+    [activeStep],
+  )
+
   if (!validStep) {
     return <Navigate to="/course/electrical-risks/1" replace />
   }
@@ -273,10 +272,6 @@ export function ElectricalRisksUnitPage() {
   const barProgress = STEP_PROGRESS[stepNum - 1]
   const p5Sel = answers.electricalClassification
   const activePreventiveCards = PREVENTIVE_CARDS[preventiveTab] ?? PREVENTIVE_CARDS.explosion
-  const activeStepData = useMemo(
-    () => stepsData.find((s) => s.id === activeStep) ?? stepsData[0],
-    [activeStep],
-  )
 
   const navProps = {
     onPrevious,
@@ -297,7 +292,7 @@ export function ElectricalRisksUnitPage() {
           else if (unitKey === 'xray') navigate('/course/radiation-risks/1')
           else navigate(`/course/learn?unit=${unitKey}`)
         }}
-        progressPercent={progressPercent}
+        progressPercent={percent}
         courseHeading="برنامج التوعية التفاعلي: التعرف على أنواع المخاطر المهنية والاستجابة الآمنة"
       />
 
@@ -578,7 +573,13 @@ export function ElectricalRisksUnitPage() {
                   </div>
                 </div>
               </ElectricalChrome>
-              <StepNavigation {...navProps} onNext={() => navigate('/course/radiation-risks/1')} />
+              <StepNavigation
+                {...navProps}
+                onNext={() => {
+                  recordLessonComplete('electricity')
+                  navigate('/course/radiation-risks/1')
+                }}
+              />
             </>
           ) : null}
         </div>

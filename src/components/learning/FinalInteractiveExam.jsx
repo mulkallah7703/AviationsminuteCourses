@@ -1,25 +1,6 @@
-import { useMemo, useState } from 'react'
-
-const Q1_CONNECTION_TARGETS = [
-  { id: 'cause', title: 'السبب' },
-  { id: 'effect', title: 'التأثير' },
-  { id: 'solution', title: 'الحل' },
-]
-
-const Q1_CONNECTION_CHOICES = {
-  cause: [
-    { id: 'cause-vibration-tool', label: 'استخدام أداة تهتز لفترة طويلة', correct: true },
-    { id: 'cause-heat', label: 'التعرض لحرارة مرتفعة', correct: false },
-  ],
-  effect: [
-    { id: 'effect-nerve', label: 'تنميل وتلف تدريجي للأعصاب', correct: true },
-    { id: 'effect-chemical', label: 'تسمم كيميائي حاد', correct: false },
-  ],
-  solution: [
-    { id: 'solution-safe', label: 'استخدام قفازات وتقليل مدة التعرض', correct: true },
-    { id: 'solution-ignore', label: 'الاستمرار بنفس أسلوب العمل', correct: false },
-  ],
-}
+import { useEffect, useState } from 'react'
+import { useCourseProgress } from '../../context/CourseProgressContext'
+import { HAZARDS_DATA, Q1_CONNECTION_TARGETS, getHazardData } from '../../data/finalExamHazardsData'
 
 const Q2_QUESTIONS = [
   {
@@ -54,6 +35,12 @@ const Q2_SORT_ITEMS = [
   { id: 'cooling', label: 'تبريد مناولة', tone: 'green', zone: 'physical' },
   { id: 'dust', label: 'غبار/جسيمات', tone: 'yellow', zone: 'environmental' },
   { id: 'sunburn', label: 'حروق شمس', tone: 'orange', zone: 'physical' },
+]
+
+/** RTL: first column renders on the right — environmental. */
+const Q2_DROP_ZONES = [
+  { id: 'environmental', title: 'صندوق المخاطر البيئية', boxClass: 'final-exam__drop-box--env' },
+  { id: 'physical', title: 'صندوق المخاطر الجسدية/التشغيلية', boxClass: 'final-exam__drop-box--phys' },
 ]
 
 const EXAM_QUESTIONS = [
@@ -120,13 +107,8 @@ const EXAM_QUESTIONS = [
   },
 ]
 
-function getEvaluation(score) {
-  if (score === 3) return 'ممتاز'
-  if (score === 2) return 'جيد'
-  return 'يحتاج تحسين'
-}
-
 export function FinalInteractiveExam({ onExitToCourse }) {
+  const { recordInteractive, recordQuizPassed, recordLessonComplete } = useCourseProgress()
   const [stepIndex, setStepIndex] = useState(0)
   const [answers, setAnswers] = useState({})
   const [showResult, setShowResult] = useState(false)
@@ -139,6 +121,8 @@ export function FinalInteractiveExam({ onExitToCourse }) {
   const [q2DragId, setQ2DragId] = useState('')
   const [q2DragOverZone, setQ2DragOverZone] = useState('')
   const [q2WrongItemId, setQ2WrongItemId] = useState('')
+  const [q2ZoneFlash, setQ2ZoneFlash] = useState(null)
+  const [q2ShakeZone, setQ2ShakeZone] = useState(null)
 
   const current = EXAM_QUESTIONS[stepIndex]
   const currentAnswer = answers[current.id]
@@ -163,22 +147,44 @@ export function FinalInteractiveExam({ onExitToCourse }) {
         ? answers.q2 === 'correct'
       : answered && currentAnswer === current.correctId
 
-  const score = useMemo(
-    () =>
-      EXAM_QUESTIONS.reduce((acc, q) => {
-        if (q.id === 'q1') return acc + (answers.q1 === 'correct' ? 1 : 0)
-        return acc + (answers[q.id] === q.correctId ? 1 : 0)
-      }, 0),
-    [answers],
-  )
+  useEffect(() => {
+    if (!showResult) return
+    recordQuizPassed()
+    recordLessonComplete('interactive-assessment')
+  }, [showResult, recordQuizPassed, recordLessonComplete])
+
+  useEffect(() => {
+    if (answers.q1 === 'correct') recordInteractive('exam-q1')
+  }, [answers.q1, recordInteractive])
+
+  useEffect(() => {
+    if (answers.q2 === 'correct') recordInteractive('exam-sort')
+  }, [answers.q2, recordInteractive])
+
+  useEffect(() => {
+    if (answers.q3 === 'safe-action') recordInteractive('exam-q3')
+  }, [answers.q3, recordInteractive])
 
   const onChoose = (optionId) => {
     setAnswers((prev) => ({ ...prev, [current.id]: optionId }))
   }
 
-  const onDropQ1 = (optionId) => {
+  const applyQ1Hazard = (optionId) => {
+    if (!optionId || !getHazardData(optionId)) return
+    if (optionId === q1DropId) return
     setQ1DropId(optionId)
     setDragOver(false)
+    setQ1Connections({ cause: '', effect: '', solution: '' })
+    setQ1ActionInput('')
+    setAnswers((prev) => {
+      const next = { ...prev }
+      delete next.q1
+      return next
+    })
+  }
+
+  const onDropQ1 = (optionId) => {
+    applyQ1Hazard(optionId)
   }
 
   const onChooseConnection = (targetId, choiceId) => {
@@ -187,12 +193,15 @@ export function FinalInteractiveExam({ onExitToCourse }) {
 
   const finalizeQ1 = () => {
     if (!q1Completed) return
+    const hazard = getHazardData(q1DropId)
+    if (!hazard) return
     const connectionIsCorrect = Q1_CONNECTION_TARGETS.every((target) => {
       const selected = q1Connections[target.id]
-      const selectedObj = Q1_CONNECTION_CHOICES[target.id].find((item) => item.id === selected)
+      const choices = hazard.connections[target.id]
+      const selectedObj = choices?.find((item) => item.id === selected)
       return selectedObj?.correct
     })
-    const fullCorrect = q1DropId === 'vibration' && connectionIsCorrect
+    const fullCorrect = connectionIsCorrect
     setAnswers((prev) => ({ ...prev, q1: fullCorrect ? 'correct' : 'wrong' }))
   }
 
@@ -209,7 +218,28 @@ export function FinalInteractiveExam({ onExitToCourse }) {
     setQ2DragId('')
     setQ2DragOverZone('')
     setQ2WrongItemId('')
+    setQ2ZoneFlash(null)
+    setQ2ShakeZone(null)
     setAnswers((prev) => ({ ...prev, q2: '' }))
+  }
+
+  const applyQ2ItemToZone = (zoneId, rawItemId) => {
+    const itemId = rawItemId || q2DragId
+    const item = Q2_SORT_ITEMS.find((i) => i.id === itemId)
+    setQ2DragOverZone('')
+    setQ2DragId('')
+    if (!item) return
+    if (item.zone === zoneId) {
+      setQ2Matches((prev) => ({ ...prev, [item.id]: zoneId }))
+      setQ2WrongItemId('')
+      setQ2ZoneFlash(zoneId)
+      window.setTimeout(() => setQ2ZoneFlash(null), 700)
+      return
+    }
+    setQ2WrongItemId(item.id)
+    setQ2ShakeZone(zoneId)
+    window.setTimeout(() => setQ2ShakeZone(null), 480)
+    window.setTimeout(() => setQ2WrongItemId(''), 520)
   }
 
   const onNext = () => {
@@ -234,7 +264,13 @@ export function FinalInteractiveExam({ onExitToCourse }) {
     setQ2DragId('')
     setQ2DragOverZone('')
     setQ2WrongItemId('')
+    setQ2ZoneFlash(null)
+    setQ2ShakeZone(null)
   }
+
+  const q1Hazard = current.id === 'q1' && q1DropId ? getHazardData(q1DropId) : null
+  const hazardThemeClass = q1DropId ? (getHazardData(q1DropId)?.themeClass ?? '') : ''
+  const decisionContext = getHazardData(q1DropId) ?? HAZARDS_DATA.vibration
 
   if (showResult) {
     return (
@@ -256,7 +292,7 @@ export function FinalInteractiveExam({ onExitToCourse }) {
   }
 
   return (
-    <section className="final-exam fade-slide-in" dir="rtl">
+    <section className={`final-exam fade-slide-in ${hazardThemeClass}`.trim()} dir="rtl">
       <header className="final-exam__head">
         <h1>التقييم التفاعلي النهائي</h1>
         <p>{`السؤال ${stepIndex + 1} من 3`}</p>
@@ -269,15 +305,23 @@ export function FinalInteractiveExam({ onExitToCourse }) {
         <article className="final-exam__scenario">
           <h2>{current.title}</h2>
           {current.id === 'q1' ? (
-            <div className="final-exam__scenario-animated">
-              <p>
-                عامل يستخدم <mark>أداة تهتز</mark> لمدة <mark>فترة طويلة</mark> وهو يعمل{' '}
-                <mark>بدون قفازات</mark> مضادة للاهتزاز، ويبدأ بالشعور بتنميل في اليدين.
+            q1Hazard ? (
+              <div key={q1DropId} className="final-exam__scenario-swap">
+                <p className="final-exam__analyze-banner" role="status">
+                  {q1Hazard.analyzeLine}
+                </p>
+                <div className="final-exam__scenario-animated final-exam__scenario-animated--dynamic">
+                  <p>{q1Hazard.scenarioLead}</p>
+                  <span className="final-exam__tool-vibe" aria-hidden>
+                    {q1Hazard.icon}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <p className="final-exam__scenario-prompt">
+                اسحب أحد أنواع المخاطر إلى المربع أو اضغط عليه لتظهر السيناريو والأسئلة المرتبطة به.
               </p>
-              <span className="final-exam__tool-vibe" aria-hidden>
-                📳
-              </span>
-            </div>
+            )
           ) : (
             <p>{current.scenario}</p>
           )}
@@ -302,7 +346,7 @@ export function FinalInteractiveExam({ onExitToCourse }) {
                   type="button"
                   draggable
                   onDragStart={(event) => event.dataTransfer.setData('text/plain', option.id)}
-                  className={`final-exam__option ${q1DropId === option.id ? 'is-selected' : ''}`}
+                  className={`final-exam__option ${q1DropId === option.id ? 'is-selected is-hazard-picked' : ''}`}
                   onClick={() => onDropQ1(option.id)}
                 >
                   <span className="final-exam__option-icon" aria-hidden>
@@ -330,15 +374,15 @@ export function FinalInteractiveExam({ onExitToCourse }) {
             </div>
           </section>
 
-          {q1DropId ? (
-            <section className="final-exam__connect">
+          {q1DropId && q1Hazard ? (
+            <section key={q1DropId} className="final-exam__connect">
               <h3>اربط السبب والتأثير والحل</h3>
               <div className="final-exam__connect-grid">
                 {Q1_CONNECTION_TARGETS.map((target) => (
                   <article key={target.id} className="final-exam__connect-card">
                     <h4>{target.title}</h4>
                     <div className="final-exam__connect-choices">
-                      {Q1_CONNECTION_CHOICES[target.id].map((choice) => (
+                      {(q1Hazard.connections[target.id] ?? []).map((choice) => (
                         <button
                           key={choice.id}
                           type="button"
@@ -375,11 +419,11 @@ export function FinalInteractiveExam({ onExitToCourse }) {
             <header className="final-exam__sort-head">
               <h3>تحدي فرز المخاطر الذكية</h3>
               <p>
-                صنّف العوامل التالية عن طريق سحبها وإفلاتها في الصندوق الصحيح (بيئية أو جسدية).
+                صنّف العوامل التالية عن طريق سحبها وإفلاتها داخل الصندوق المناسب (بيئية أو جسدية/تشغيلية).
               </p>
             </header>
 
-            <section className="final-exam__sort-cards">
+            <section className="final-exam__sort-pool" aria-label="بطاقات جاهزة للفرز">
               {Q2_SORT_ITEMS.filter((item) => !q2Matches[item.id]).map((item) => (
                 <button
                   key={item.id}
@@ -387,15 +431,16 @@ export function FinalInteractiveExam({ onExitToCourse }) {
                   draggable
                   onDragStart={(event) => {
                     event.dataTransfer.setData('text/plain', item.id)
+                    event.dataTransfer.effectAllowed = 'move'
                     setQ2DragId(item.id)
                   }}
                   onDragEnd={() => {
                     setQ2DragId('')
                     setQ2DragOverZone('')
                   }}
-                  className={`final-exam__sort-card final-exam__sort-card--${item.tone} ${
-                    q2WrongItemId === item.id ? 'is-wrong' : ''
-                  }`}
+                  className={`final-exam__sort-pool-card final-exam__sort-pool-card--${item.tone} ${
+                    q2WrongItemId === item.id ? 'is-shake-wrong' : ''
+                  } ${q2DragId === item.id ? 'is-lifted' : ''}`}
                   onClick={() => setQ2DragId(item.id)}
                 >
                   {item.label}
@@ -403,65 +448,71 @@ export function FinalInteractiveExam({ onExitToCourse }) {
               ))}
             </section>
 
-            <section className="final-exam__sort-zones">
-              {[
-                { id: 'environmental', title: 'صندوق "المخاطر البيئية"', tone: 'blue' },
-                { id: 'physical', title: 'صندوق "المخاطر الجسدية/التشغيلية"', tone: 'orange' },
-              ].map((zone) => (
-                <article
-                  key={zone.id}
-                  className={`final-exam__sort-zone final-exam__sort-zone--${zone.tone} ${
-                    q2DragOverZone === zone.id ? 'is-over' : ''
-                  }`}
-                  onDragOver={(event) => {
-                    event.preventDefault()
-                    setQ2DragOverZone(zone.id)
-                  }}
-                  onDragLeave={() => setQ2DragOverZone('')}
-                  onDrop={(event) => {
-                    event.preventDefault()
-                    const itemId = event.dataTransfer.getData('text/plain') || q2DragId
-                    const item = Q2_SORT_ITEMS.find((i) => i.id === itemId)
-                    setQ2DragOverZone('')
-                    setQ2DragId('')
-                    if (!item) return
-                    if (item.zone === zone.id) {
-                      setQ2Matches((prev) => ({ ...prev, [item.id]: zone.id }))
-                      setQ2WrongItemId('')
-                    } else {
-                      setQ2WrongItemId(item.id)
-                      setTimeout(() => setQ2WrongItemId(''), 520)
-                    }
-                  }}
-                  onClick={() => {
-                    if (!q2DragId) return
-                    const item = Q2_SORT_ITEMS.find((i) => i.id === q2DragId)
-                    if (!item) return
-                    if (item.zone === zone.id) {
-                      setQ2Matches((prev) => ({ ...prev, [item.id]: zone.id }))
-                      setQ2WrongItemId('')
-                    } else {
-                      setQ2WrongItemId(item.id)
-                      setTimeout(() => setQ2WrongItemId(''), 520)
-                    }
-                    setQ2DragId('')
-                  }}
-                >
-                  <h4>{zone.title}</h4>
-                  <div className="final-exam__sort-zone-items">
-                    {Q2_SORT_ITEMS.filter((item) => q2Matches[item.id] === zone.id).map((item) => (
-                      <div key={item.id} className={`final-exam__sort-chip final-exam__sort-chip--${item.tone}`}>
-                        <span>{item.label}</span>
-                        <span aria-hidden>✅</span>
-                      </div>
-                    ))}
-                  </div>
-                </article>
-              ))}
-            </section>
+            <div className="final-exam__sort-layout" dir="rtl">
+              {Q2_DROP_ZONES.map((zone) => {
+                const inZone = Q2_SORT_ITEMS.filter((item) => q2Matches[item.id] === zone.id)
+                const isEmpty = inZone.length === 0
+                return (
+                  <article
+                    key={zone.id}
+                    className={`final-exam__drop-box ${zone.boxClass} ${
+                      q2DragOverZone === zone.id ? 'is-over' : ''
+                    } ${q2ZoneFlash === zone.id ? 'is-success-flash' : ''} ${
+                      q2ShakeZone === zone.id ? 'is-shake' : ''
+                    }`.trim()}
+                    onDragOver={(event) => {
+                      event.preventDefault()
+                      event.dataTransfer.dropEffect = 'move'
+                      setQ2DragOverZone(zone.id)
+                    }}
+                    onDragLeave={(event) => {
+                      const { relatedTarget } = event
+                      if (relatedTarget instanceof Node && event.currentTarget.contains(relatedTarget)) return
+                      setQ2DragOverZone((z) => (z === zone.id ? '' : z))
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault()
+                      const itemId = event.dataTransfer.getData('text/plain') || q2DragId
+                      applyQ2ItemToZone(zone.id, itemId)
+                    }}
+                  >
+                    <header className="final-exam__drop-box__head">{zone.title}</header>
+                    <div
+                      className={`final-exam__drop-box__body ${q2DragId ? 'is-droppable' : ''}`.trim()}
+                      role="list"
+                      onClick={() => {
+                        if (!q2DragId) return
+                        applyQ2ItemToZone(zone.id, q2DragId)
+                      }}
+                    >
+                      {isEmpty ? (
+                        <p className="final-exam__drop-empty">اسحب العناصر هنا</p>
+                      ) : (
+                        inZone.map((item) => (
+                          <div
+                            key={item.id}
+                            role="listitem"
+                            className={`final-exam__drop-chip final-exam__drop-chip--${item.tone}`}
+                          >
+                            <span>{item.label}</span>
+                            <span className="final-exam__drop-chip__ok" aria-hidden>
+                              ✓
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
 
             <footer className="final-exam__sort-progress">
-              <span>{`تم الفرز ${q2DoneCount}/${Q2_SORT_ITEMS.length}`}</span>
+              <span className="final-exam__sort-progress-label">
+                تم الفرز <strong>{q2DoneCount}</strong>
+                <span className="final-exam__sort-progress-sep">/</span>
+                <strong>{Q2_SORT_ITEMS.length}</strong>
+              </span>
               <div className="final-exam__sort-progress-track" aria-hidden>
                 <span style={{ width: `${(q2DoneCount / Q2_SORT_ITEMS.length) * 100}%` }} />
               </div>
@@ -517,14 +568,14 @@ export function FinalInteractiveExam({ onExitToCourse }) {
             <header className="final-decision__head">
               <span className="final-decision__badge">قرار يؤثر على سلامتك</span>
               <h2>اتخذ القرار الصحيح</h2>
-              <p>أنت في بيئة عمل تحتوي على اهتزازات عالية بشكل مستمر</p>
+              <p>{decisionContext.q3.headline}</p>
             </header>
 
             <article className="final-decision__scenario-card">
               <span className="final-decision__scenario-icon" aria-hidden>
-                👷📳
+                {decisionContext.q3.icon}
               </span>
-              <strong>ما هو الإجراء الأكثر أمانًا في هذا الموقف؟</strong>
+              <strong>{decisionContext.q3.cardLead}</strong>
             </article>
 
             <section className="final-decision__options" role="list">
@@ -588,14 +639,19 @@ export function FinalInteractiveExam({ onExitToCourse }) {
           <p>
             <strong>لماذا هذا صحيح؟ </strong>
             {current.id === 'q1' && !isCorrect
-              ? 'فكر في نوع الخطر الناتج عن الاهتزاز: الخطر الصحيح هو الاهتزازات، مع ربط السبب بالأداة المهتزة والتأثير بالأعصاب والحل بالوقاية.'
-              : current.id === 'q3' && !isCorrect
-                ? 'فكر في التأثير طويل المدى على صحتك: القرار الآمن هو تقليل التعرض واستخدام معدات الوقاية.'
-              : current.explanation}
+              ? q1Hazard
+                ? `راجع الربط لنوع الخطر (${q1Hazard.label}): تأكد أن السبب والتأثير والحل يصفون نفس المخاطر التي اخترتها.`
+                : 'اختر نوع الخطر أولاً ثم اربط السبب والتأثير والحل بما يطابقه.'
+              : current.id === 'q1' && isCorrect && q1Hazard
+                ? q1Hazard.explanation
+                : current.id === 'q3' && !isCorrect
+                  ? 'فكر في التأثير طويل المدى على صحتك: القرار الآمن هو تقليل التعرض واستخدام معدات الوقاية.'
+                  : current.explanation}
           </p>
           <p className="final-exam__insight">
             {current.id === 'q1'
-              ? '💡 معلومة مهمة: التعرض الطويل للاهتزازات قد يؤدي إلى تلف دائم في الأعصاب.'
+              ? q1Hazard?.insight ??
+                '💡 اختر نوع الخطر لعرض تلميح مخصص يوضح كيفية تحليل هذا السياق.'
               : current.insight}
           </p>
         </section>

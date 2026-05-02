@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useCourseProgress } from '../context/CourseProgressContext'
 import { learningUnits } from '../data/courseData'
 import { SidebarNavigation } from '../components/learning/SidebarNavigation'
 
@@ -48,12 +49,8 @@ const TAB_PANELS = {
 
 export function PhysicalRisksTypesPage() {
   const navigate = useNavigate()
+  const { recordLessonComplete, percent } = useCourseProgress()
   const [activeTab, setActiveTab] = useState('striking')
-
-  const progressPercent = useMemo(
-    () => Math.round((2 / learningUnits.length) * 100),
-    [],
-  )
 
   const panel = TAB_PANELS[activeTab]
 
@@ -69,7 +66,7 @@ export function PhysicalRisksTypesPage() {
           else if (unitKey === 'xray') navigate('/course/radiation-risks/1')
           else navigate(`/course/learn?unit=${unitKey}`)
         }}
-        progressPercent={progressPercent}
+        progressPercent={percent}
         courseHeading="برنامج التوعية التفاعلي: التعرف على أنواع المخاطر المهنية والاستجابة الآمنة"
       />
 
@@ -119,14 +116,17 @@ export function PhysicalRisksTypesPage() {
               className="ghost step-btn"
               onClick={() => navigate('/course/learn?unit=physical&page=2')}
             >
-              Previous
+              السابق
             </button>
             <button
               type="button"
               className="primary step-btn"
-              onClick={() => navigate('/course/extreme-temperature/1')}
+              onClick={() => {
+                recordLessonComplete('physical')
+                navigate('/course/extreme-temperature/1')
+              }}
             >
-              Next
+              التالي
             </button>
           </footer>
         </div>
