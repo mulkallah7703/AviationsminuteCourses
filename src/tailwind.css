@@ -1,0 +1,12 @@
+@import 'tailwindcss';
+
+/* Scope reset: keep LMS course pages intact — no Tailwind preflight layer */
+@theme {
+  --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-display: 'Segoe UI', system-ui, sans-serif;
+  --color-dash-bg: #030712;
+  --color-dash-panel: rgba(15, 23, 42, 0.55);
+  --color-dash-accent: #38bdf8;
+  --color-dash-accent2: #6366f1;
+  --color-dash-glow: rgba(56, 189, 248, 0.45);
+}

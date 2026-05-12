@@ -1,0 +1,26 @@
+# Local PostgreSQL for LMS auth API — eliminates 503 when DB was never running.
+# Usage from repo root: docker compose up -d
+# Then ensure backend/.env DATABASE_URL matches POSTGRES_* below.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lms_sass_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lms_auth
+    ports:
+      - '5432:5432'
+    volumes:
+      - lms_pgdata:/var/lib/postgresql/data
+      - ./backend/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d lms_auth']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  lms_pgdata:
