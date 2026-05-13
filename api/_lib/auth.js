@@ -13,10 +13,11 @@ function requireSecret(name) {
 }
 
 export function signAccessToken(user) {
+  const employeeNumber = user.employeeId ?? user.employee_number ?? user.employeeNumber
   return jwt.sign(
     {
       sub: user.id,
-      employeeNumber: user.employee_number,
+      employeeNumber,
       role: user.role ?? 'user',
     },
     requireSecret('JWT_ACCESS_SECRET'),
@@ -76,9 +77,9 @@ export function mapUserRow(row) {
   if (!row) return null
   return {
     id: row.id,
-    fullName: row.full_name,
-    employeeNumber: row.employee_number,
+    fullName: row.fullName ?? row.full_name,
+    employeeNumber: row.employeeId ?? row.employee_number ?? row.employeeNumber,
     role: row.role ?? 'user',
-    createdAt: row.created_at,
+    createdAt: row.createdAt ?? row.created_at,
   }
 }

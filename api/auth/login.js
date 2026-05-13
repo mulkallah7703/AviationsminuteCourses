@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     const user = await findByEmployeeNumber(emp.normalized)
     if (!user) return unauthorized(res, 'رقم الموظف أو كلمة المرور غير صحيحة')
 
-    const matches = await bcrypt.compare(password, user.password_hash)
+    const matches = await bcrypt.compare(password, user.password)
     if (!matches) return unauthorized(res, 'رقم الموظف أو كلمة المرور غير صحيحة')
 
     const accessToken = signAccessToken(user)

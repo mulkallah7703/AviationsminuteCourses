@@ -18,7 +18,7 @@ export function signAccessToken(user) {
   return jwt.sign(
     {
       sub: user.id,
-      employeeNumber: user.employee_number,
+      employeeNumber: user.employeeId ?? user.employee_number ?? user.employeeNumber,
       role: user.role ?? 'user',
     },
     secret,

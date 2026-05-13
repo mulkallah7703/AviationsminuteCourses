@@ -1,4 +1,4 @@
-import 'dotenv/config'
+import './config/loadEnv.js'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import crypto from 'crypto'
@@ -83,6 +83,6 @@ app.listen(port, () => {
     .then(() => console.log('[db] PostgreSQL connection OK'))
     .catch((e) => {
       console.error('[db] PostgreSQL connection FAILED:', e.message)
-      console.error('[db] Start Postgres (e.g. docker compose up -d) and check DATABASE_URL in backend/.env')
+      console.error('[db] Check DATABASE_URL in the repo root .env (Neon pooled URL with sslmode=require)')
     })
 })

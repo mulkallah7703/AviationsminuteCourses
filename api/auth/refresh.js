@@ -49,7 +49,7 @@ export default async function handler(req, res) {
 
     if (!userRow) return unauthorized(res, 'Invalid refresh token')
 
-    const full = await findByEmployeeNumber(userRow.employee_number)
+    const full = await findByEmployeeNumber(userRow.employeeId)
     if (!full) return unauthorized(res, 'Invalid refresh token')
 
     const accessToken = signAccessToken(full)

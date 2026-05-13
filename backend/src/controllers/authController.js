@@ -44,10 +44,10 @@ function mapUser(row) {
   if (!row) return null
   return {
     id: row.id,
-    fullName: row.full_name,
-    employeeNumber: row.employee_number,
+    fullName: row.fullName ?? row.full_name,
+    employeeNumber: row.employeeId ?? row.employee_number ?? row.employeeNumber,
     role: row.role ?? 'user',
-    createdAt: row.created_at,
+    createdAt: row.createdAt ?? row.created_at,
   }
 }
 
@@ -120,7 +120,7 @@ export async function login(req, res, next) {
       return next(err)
     }
 
-    const ok = await bcrypt.compare(password, user.password_hash)
+    const ok = await bcrypt.compare(password, user.password)
     if (!ok) {
       const err = new Error('رقم الموظف أو كلمة المرور غير صحيحة')
       err.status = 401
@@ -207,7 +207,7 @@ export async function refresh(req, res, next) {
       return next(err)
     }
 
-    const full = await findByEmployeeNumber(userRow.employee_number)
+    const full = await findByEmployeeNumber(userRow.employeeId)
     if (!full) {
       const err = new Error('Invalid refresh token')
       err.status = 401

@@ -1,52 +1,68 @@
-import { query } from '../config/database.js'
+import { prisma } from '../lib/prisma.js'
 
 export async function countUsers() {
-  const { rows } = await query('SELECT COUNT(*)::int AS n FROM users')
-  return rows[0]?.n ?? 0
+  return prisma.user.count()
 }
 
 export async function findByEmployeeNumber(employeeNumber) {
-  const { rows } = await query(
-    `SELECT id, employee_number, full_name, password_hash, role, created_at
-     FROM users WHERE employee_number = $1`,
-    [employeeNumber],
-  )
-  return rows[0] ?? null
+  return prisma.user.findUnique({
+    where: { employeeId: employeeNumber },
+  })
 }
 
 export async function findById(id) {
-  const { rows } = await query(
-    `SELECT id, employee_number, full_name, role, created_at FROM users WHERE id = $1`,
-    [id],
-  )
-  return rows[0] ?? null
+  return prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      employeeId: true,
+      fullName: true,
+      role: true,
+      createdAt: true,
+    },
+  })
 }
 
 export async function findByRefreshHash(refreshTokenHash) {
-  const { rows } = await query(
-    `SELECT id, employee_number, full_name, role, created_at FROM users WHERE refresh_token_hash = $1`,
-    [refreshTokenHash],
-  )
-  return rows[0] ?? null
+  return prisma.user.findFirst({
+    where: { refreshTokenHash },
+    select: {
+      id: true,
+      employeeId: true,
+      fullName: true,
+      role: true,
+      createdAt: true,
+    },
+  })
 }
 
 export async function createUser({ fullName, employeeNumber, passwordHash }) {
-  const { rows } = await query(
-    `INSERT INTO users (full_name, employee_number, password_hash)
-     VALUES ($1, $2, $3)
-     RETURNING id, employee_number, full_name, role, created_at`,
-    [fullName, employeeNumber, passwordHash],
-  )
-  return rows[0]
+  return prisma.user.create({
+    data: {
+      fullName,
+      employeeId: employeeNumber,
+      password: passwordHash,
+    },
+    select: {
+      id: true,
+      employeeId: true,
+      fullName: true,
+      role: true,
+      createdAt: true,
+    },
+  })
 }
 
 export async function setRefreshTokenHash(userId, refreshTokenHash) {
-  await query(`UPDATE users SET refresh_token_hash = $2 WHERE id = $1`, [
-    userId,
-    refreshTokenHash,
-  ])
+  await prisma.user.update({
+    where: { id: userId },
+    data: { refreshTokenHash },
+  })
 }
 
 export async function clearRefreshToken(userId) {
-  await query(`UPDATE users SET refresh_token_hash = NULL WHERE id = $1`, [userId])
+  await prisma.user.update({
+    where: { id: userId },
+    data: { refreshTokenHash: null },
+  })
 }
