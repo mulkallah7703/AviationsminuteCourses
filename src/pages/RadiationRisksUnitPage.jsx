@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useCourseProgress } from '../context/CourseProgressContext'
 import { learningUnits } from '../data/courseData'
+import { getUnitPath } from '../lib/unitNavigation'
 import { SidebarNavigation } from '../components/learning/SidebarNavigation'
 import { StepNavigation } from '../components/course-ui/StepNavigation'
 import { RadiationChrome } from '../components/course-ui/RadiationChrome'
@@ -291,13 +292,7 @@ export function RadiationRisksUnitPage() {
     className: 'rr-step-nav',
   }
 
-  const unitNav = (unitKey) => {
-    if (unitKey === 'xray') navigate('/course/radiation-risks/1')
-    else if (unitKey === 'electricity') navigate('/course/electrical-risks/1')
-    else if (unitKey === 'vibration') navigate('/course/vibration-risks/1')
-    else if (unitKey === 'extreme-temperature') navigate('/course/extreme-temperature/1')
-    else navigate(`/course/learn?unit=${unitKey}`)
-  }
+  const unitNav = (unitKey) => navigate(getUnitPath(unitKey))
 
   return (
     <div className="learning-layout">

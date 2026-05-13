@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { getUnitPath } from '../../lib/unitNavigation'
 
 export function HeroSection() {
   const navigate = useNavigate()
@@ -12,7 +13,7 @@ export function HeroSection() {
         <button
           type="button"
           className="hero-cta"
-          onClick={() => navigate('/course/learn?unit=chemical')}
+          onClick={() => navigate(getUnitPath('chemical'))}
           aria-label="ابدأ الدورة"
         >
           ابدأ الدورة

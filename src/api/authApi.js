@@ -1,12 +1,8 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? ''
-const REQUEST_TIMEOUT_MS = 12_000
-
-function joinUrl(path) {
-  if (path.startsWith('http')) return path
-  const base = API_BASE.replace(/\/$/, '')
-  const p = path.startsWith('/') ? path : `/${path}`
-  return `${base}${p}`
-}
+import {
+  API_MAX_RETRIES,
+  API_REQUEST_TIMEOUT_MS,
+  joinApiUrl,
+} from './config.js'
 
 const STORAGE_ACCESS = 'lms_auth_access_token'
 const STORAGE_REFRESH = 'lms_auth_refresh_token'
@@ -72,16 +68,25 @@ export function clearStoredTokens() {
 async function parseJsonSafe(res) {
   const text = await res.text()
   if (!text) return {}
+
+  const contentType = res.headers.get('content-type') || ''
+  const looksLikeHtml =
+    contentType.includes('text/html') || /^\s*</.test(text)
+
+  if (looksLikeHtml) {
+    return { _htmlResponse: true, message: 'الخدمة غير متاحة حالياً' }
+  }
+
   try {
     return JSON.parse(text)
   } catch {
-    return { message: text }
+    return { message: text.slice(0, 200) }
   }
 }
 
 function classifyNetworkError(error) {
   if (error?.name === 'AbortError') {
-    return new ApiError('انتهت مهلة الاتصال بالخادم، جاري إعادة المحاولة لاحقًا', {
+    return new ApiError('انتهت مهلة الاتصال — جاري إعادة المحاولة', {
       code: 'TIMEOUT',
     })
   }
@@ -91,13 +96,21 @@ function classifyNetworkError(error) {
 }
 
 function mapHttpError(status, data, fallback) {
+  if (data?._htmlResponse) {
+    return new ApiError('الخدمة غير متاحة حالياً', {
+      status: 503,
+      code: 'SERVICE_UNAVAILABLE',
+    })
+  }
+
   const message =
     data?.message ||
     (status === 401
       ? 'رقم الموظف أو كلمة المرور غير صحيحة'
       : status === 503 || status === 502 || status === 504
-        ? 'الخادم غير متاح حالياً'
+        ? 'الخدمة غير متاحة حالياً'
         : fallback)
+
   return new ApiError(message, {
     status,
     code: data?.code || null,
@@ -110,11 +123,22 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+function isRetryable(error) {
+  return (
+    error?.code === 'NETWORK' ||
+    error?.code === 'TIMEOUT' ||
+    error?.code === 'SERVICE_UNAVAILABLE' ||
+    error?.status === 503 ||
+    error?.status === 502 ||
+    error?.status === 504
+  )
+}
+
 async function request(path, options = {}) {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS)
   try {
-    const res = await fetch(joinUrl(path), {
+    const res = await fetch(joinApiUrl(path), {
       ...options,
       credentials: options.credentials ?? 'include',
       headers: {
@@ -136,25 +160,22 @@ async function request(path, options = {}) {
   }
 }
 
-export async function fetchBootstrap() {
-  const maxAttempts = 4
+async function requestWithRetry(path, options = {}, maxAttempts = API_MAX_RETRIES) {
   let lastErr
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      return await request('/api/auth/bootstrap', { method: 'GET' })
+      return await request(path, options)
     } catch (error) {
       lastErr = error
-      const retryable =
-        error?.code === 'NETWORK' ||
-        error?.code === 'TIMEOUT' ||
-        error?.status === 503 ||
-        error?.status === 502 ||
-        error?.status === 504
-      if (!retryable || attempt === maxAttempts) throw error
+      if (!isRetryable(error) || attempt === maxAttempts) throw error
       await sleep(320 * attempt)
     }
   }
   throw lastErr
+}
+
+export async function fetchBootstrap() {
+  return requestWithRetry('/api/auth/bootstrap', { method: 'GET' }, 4)
 }
 
 export async function registerUser({ fullName, employeeNumber, password, confirmPassword }) {
@@ -208,13 +229,21 @@ export async function refreshTokens({ refreshToken, refreshJwt }) {
 
 export function mapAuthErrorMessage(error, fallback = 'حدث خطأ غير متوقع') {
   if (!error) return fallback
+
   if (error.code === 'DB_UNAVAILABLE') {
-    return 'تعذر الاتصال بقاعدة البيانات — شغّل PostgreSQL أو نفّذ: docker compose up -d'
+    return 'تعذر الاتصال بقاعدة البيانات حالياً'
   }
-  if (error.code === 'TIMEOUT') return 'انتهت مهلة الاتصال بالخادم، جاري إعادة المحاولة'
-  if (error.code === 'NETWORK') return 'الخادم غير متاح حالياً'
+  if (error.code === 'SERVICE_UNAVAILABLE') {
+    return 'الخدمة غير متاحة حالياً'
+  }
+  if (error.code === 'TIMEOUT') {
+    return 'انتهت مهلة الاتصال — جاري إعادة المحاولة'
+  }
+  if (error.code === 'NETWORK') {
+    return 'تعذر الاتصال بالخادم'
+  }
   if (error.status === 502 || error.status === 503 || error.status === 504) {
-    return 'الخادم غير متاح حالياً — تأكد من تشغيل واجهة الـ API على المنفذ 4000'
+    return 'الخدمة غير متاحة حالياً'
   }
   if (error.status === 401) return 'رقم الموظف أو كلمة المرور غير صحيحة'
   if (error.status === 409) return 'رقم الموظف مسجل مسبقًا'

@@ -7,15 +7,20 @@
     "dev": "vite",
     "dev:api": "npm run dev --prefix backend",
     "dev:full": "concurrently -k -n web,api -c cyan,magenta \"npm run dev\" \"npm run dev:api\"",
+    "dev:vercel": "vercel dev",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "gen:secret": "node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\""
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "framer-motion": "^12.38.0",
+    "jsonwebtoken": "^9.0.2",
     "lucide-react": "^1.14.0",
+    "pg": "^8.13.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.14.2",

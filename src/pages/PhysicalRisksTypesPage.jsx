@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCourseProgress } from '../context/CourseProgressContext'
 import { learningUnits } from '../data/courseData'
+import { getUnitPath } from '../lib/unitNavigation'
 import { SidebarNavigation } from '../components/learning/SidebarNavigation'
 
 const TABS = [
@@ -59,13 +60,7 @@ export function PhysicalRisksTypesPage() {
       <SidebarNavigation
         units={learningUnits}
         activeUnitKey="physical"
-        onSelectUnit={(unitKey) => {
-          if (unitKey === 'extreme-temperature') navigate('/course/extreme-temperature/1')
-          else if (unitKey === 'vibration') navigate('/course/vibration-risks/1')
-          else if (unitKey === 'electricity') navigate('/course/electrical-risks/1')
-          else if (unitKey === 'xray') navigate('/course/radiation-risks/1')
-          else navigate(`/course/learn?unit=${unitKey}`)
-        }}
+        onSelectUnit={(unitKey) => navigate(getUnitPath(unitKey))}
         progressPercent={percent}
         courseHeading="برنامج التوعية التفاعلي: التعرف على أنواع المخاطر المهنية والاستجابة الآمنة"
       />

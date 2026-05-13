@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { getUnitPath } from '../../lib/unitNavigation'
 
 const listItems = [
   { title: 'المخاطر الكيميائية', key: 'chemical' },
@@ -11,11 +12,7 @@ const listItems = [
 ]
 
 function unitPath(key) {
-  if (key === 'extreme-temperature') return '/course/extreme-temperature/1'
-  if (key === 'vibration') return '/course/vibration-risks/1'
-  if (key === 'electricity') return '/course/electrical-risks/1'
-  if (key === 'xray') return '/course/radiation-risks/1'
-  return `/course/learn?unit=${key}`
+  return getUnitPath(key)
 }
 
 export function CourseList() {

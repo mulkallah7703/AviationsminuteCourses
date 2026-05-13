@@ -5,6 +5,7 @@ import { LearnerAppShell } from './components/layout/LearnerAppShell'
 import { CourseLandingPage } from './pages/CourseLandingPage'
 import { CourseLearnPage } from './pages/CourseLearnPage'
 import { PhysicalRisksTypesPage } from './pages/PhysicalRisksTypesPage'
+import { ProgramCoursePage } from './pages/ProgramCoursePage'
 import { ExtremeTemperatureUnitPage } from './pages/ExtremeTemperatureUnitPage'
 import { VibrationRisksUnitPage } from './pages/VibrationRisksUnitPage'
 import { ElectricalRisksUnitPage } from './pages/ElectricalRisksUnitPage'
@@ -27,6 +28,10 @@ function App() {
           <Route path="course" element={<CoursePageLayout />}>
             <Route index element={<CourseLandingPage />} />
             <Route path="learn" element={<CourseLearnPage />} />
+            <Route path="program" element={<Navigate to="/course/program/lesson/1" replace />} />
+            <Route path="program/:type/:moduleId" element={<ProgramCoursePage />} />
+            <Route path="chemical-risks" element={<Navigate to="/course/program/lesson/1" replace />} />
+            <Route path="chemical-risks/:lesson" element={<Navigate to="/course/program/lesson/1" replace />} />
             <Route path="physical-risks/types" element={<PhysicalRisksTypesPage />} />
             <Route path="extreme-temperature" element={<Navigate to="/course/extreme-temperature/1" replace />} />
             <Route path="extreme-temperature/:step" element={<ExtremeTemperatureUnitPage />} />

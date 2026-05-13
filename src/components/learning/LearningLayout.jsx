@@ -1,13 +1,14 @@
+import { useNavigate } from 'react-router-dom'
 import { ActionFooter } from './ActionFooter'
 import { FinalLessonCompletion } from './FinalLessonCompletion'
 import { FinalInteractiveExam } from './FinalInteractiveExam'
 import { LessonContent } from './LessonContent'
 import { LessonHeader } from './LessonHeader'
 import { LessonMeta } from './LessonMeta'
-import { LessonFlow } from './lesson-flow/LessonFlow'
 import { ModuleIntroPhysical } from './ModuleIntroPhysical'
 import { ModulePhysicalRisksPage2 } from './ModulePhysicalRisksPage2'
 import { SidebarNavigation } from './SidebarNavigation'
+import { getUnitPath } from '../../lib/unitNavigation'
 
 export function LearningLayout({
   units,
@@ -27,6 +28,8 @@ export function LearningLayout({
   onPhysicalRisksPage2Back,
   lessonIndexInModule,
 }) {
+  const navigate = useNavigate()
+
   return (
     <div className="learning-layout">
       <SidebarNavigation
@@ -46,14 +49,12 @@ export function LearningLayout({
             onPrevious={onPhysicalModuleIntroBack}
             lessonStep={lessonIndexInModule}
           />
-        ) : isInteractiveStep && activeUnit.key === 'chemical' ? (
-          <LessonFlow onExit={onExitInteractiveStep} onFinish={onFinishLessonFlow} />
         ) : isInteractiveStep && activeUnit.key === 'interactive-assessment' ? (
           <FinalInteractiveExam onExitToCourse={() => onExitInteractiveStep()} />
         ) : activeUnit.key === 'interactive-assessment' ? (
           <FinalLessonCompletion
             onPrimaryAction={onStartLesson}
-            onReviewLessons={() => onSelectUnit('chemical')}
+            onReviewLessons={() => navigate(getUnitPath('chemical'))}
           />
         ) : (
           <>
@@ -73,7 +74,7 @@ export function LearningLayout({
               onStartLesson={onStartLesson}
               onNextLesson={onNextLesson}
               canGoNext={canGoNext}
-              canStartLesson={activeUnit.key === 'chemical'}
+              canStartLesson={false}
             />
           </>
         )}

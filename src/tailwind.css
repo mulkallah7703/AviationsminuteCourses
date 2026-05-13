@@ -10,3 +10,20 @@
   --color-dash-accent2: #6366f1;
   --color-dash-glow: rgba(56, 189, 248, 0.45);
 }
+
+/* Premium invisible scroll — WebKit, Firefox, legacy Edge/IE */
+@layer utilities {
+  .scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+    background: transparent;
+  }
+}

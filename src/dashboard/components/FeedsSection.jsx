@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion'
 import {
   Award,
-  Bell,
   BookOpen,
   Brain,
   GraduationCap,
@@ -18,34 +17,9 @@ const kindIcon = {
   cyber_complete: Shield,
 }
 
-export function FeedsSection({ activity, notifications }) {
+export function FeedsSection({ activity }) {
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <section
-        id="notifications"
-        className="scroll-mt-28 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl"
-        aria-labelledby="notif-heading"
-      >
-        <h2 id="notif-heading" className="mb-4 flex items-center gap-2 text-lg font-bold text-white">
-          <Bell className="h-5 w-5 text-amber-300" />
-          الإشعارات
-        </h2>
-        <ul className="space-y-3">
-          {notifications.map((n) => (
-            <li
-              key={n.id}
-              className={`rounded-xl border px-4 py-3 transition ${
-                n.unread ? 'border-cyan-500/30 bg-cyan-500/5 shadow-[0_0_24px_rgba(34,211,238,0.08)]' : 'border-white/5 bg-slate-950/30'
-              }`}
-            >
-              <p className="font-semibold text-slate-100">{n.title}</p>
-              <p className="text-xs text-slate-500">{n.meta}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl" aria-label="نشاط حديث">
+    <section className="scroll-mt-28 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl" aria-label="نشاط حديث">
         <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-white">
           <Radio className="h-5 w-5 text-emerald-300" />
           نشاط التعلّم المباشر
@@ -74,7 +48,6 @@ export function FeedsSection({ activity, notifications }) {
             )
           })}
         </ul>
-      </section>
-    </div>
+    </section>
   )
 }

@@ -1,35 +1,9 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { AIInsightsDeck } from '../dashboard/components/AIInsightsDeck.jsx'
-import { AIRecommendationsShelf } from '../dashboard/components/AIRecommendationsShelf.jsx'
-import { CertificatesHall } from '../dashboard/components/CertificatesHall.jsx'
 import { CourseAnalyticsBelt } from '../dashboard/components/CourseAnalyticsBelt.jsx'
-import { CourseShowcase } from '../dashboard/components/CourseShowcase.jsx'
 import { FeedsSection } from '../dashboard/components/FeedsSection.jsx'
-import { HeatmapSection } from '../dashboard/components/HeatmapSection.jsx'
 import { HeroSection } from '../dashboard/components/HeroSection.jsx'
-import { LearningIntelBlock } from '../dashboard/components/LearningIntelBlock.jsx'
-import { RoadmapTimeline } from '../dashboard/components/RoadmapTimeline.jsx'
-import { SecurityCommandBlock } from '../dashboard/components/SecurityCommandBlock.jsx'
 import { useDashboardData } from '../dashboard/hooks/useDashboardData.js'
-
-const DashboardCharts = lazy(() => import('../dashboard/components/DashboardCharts.jsx'))
-
-function ChartSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="h-10 animate-pulse rounded-xl bg-white/5" />
-      <div className="grid gap-6 lg:grid-cols-2">
-        {[0, 1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-[260px] animate-pulse rounded-2xl border border-white/5 bg-gradient-to-br from-slate-900/80 to-slate-950/80"
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
 
 export function DashboardPage() {
   const data = useDashboardData()
@@ -44,47 +18,13 @@ export function DashboardPage() {
   }, [location.hash])
 
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-950 text-slate-100 antialiased">
+    <div dir="rtl" className="min-h-full bg-slate-950 text-slate-100 antialiased">
       <HeroSection hero={data.hero} meta={data.meta} />
 
-      <div className="relative z-10 space-y-16 px-4 pb-28 pt-4 md:space-y-20 md:px-8 md:pb-32 lg:px-12">
+      <div className="relative z-10 space-y-12 px-4 pb-24 pt-4 md:space-y-14 md:px-8 md:pb-28 lg:space-y-16 lg:px-12 lg:pb-32">
         <CourseAnalyticsBelt cards={data.courseAnalytics.cards} />
 
-        <AIInsightsDeck ai={data.ai} />
-
-        <CourseShowcase courses={data.learning.courses} />
-
-        <RoadmapTimeline
-          milestones={data.learning.roadmapMilestones}
-          careerSuggestions={data.learning.careerSuggestions}
-          futureAiRecs={data.learning.futureAiRecs}
-        />
-
-        <CertificatesHall certificates={data.certificates} />
-
-        <AIRecommendationsShelf shelves={data.aiRecommendations} />
-
-        <div className="grid gap-8 xl:grid-cols-2">
-          <LearningIntelBlock learning={data.learning} />
-          <SecurityCommandBlock security={data.security} />
-        </div>
-
-        <section id="analytics" className="scroll-mt-28 space-y-6" aria-labelledby="analytics-heading">
-          <h2 id="analytics-heading" className="text-2xl font-bold text-white md:text-3xl">
-            التحليلات والرسوم البيانية المتقدمة
-          </h2>
-          <Suspense fallback={<ChartSkeleton />}>
-            <DashboardCharts
-              weeklyActivity={data.series.weeklyActivity}
-              skillGrowth={data.series.skillGrowth}
-              chartMerge={data.series.chartMerge}
-              streakCurrent={data.series.streakCurrent}
-            />
-          </Suspense>
-          <HeatmapSection heatmap={data.heatmap} />
-        </section>
-
-        <FeedsSection activity={data.activity} notifications={data.notifications} />
+        <FeedsSection activity={data.activity} />
 
         <section
           id="reports"

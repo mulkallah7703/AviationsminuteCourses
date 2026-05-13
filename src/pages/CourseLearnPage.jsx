@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useCourseProgress } from '../context/CourseProgressContext'
 import { learningUnits } from '../data/courseData'
+import { getUnitPath } from '../lib/unitNavigation'
 import { LearningLayout } from '../components/learning/LearningLayout'
 
 export function CourseLearnPage() {
@@ -23,23 +24,7 @@ export function CourseLearnPage() {
 
   const activeUnitIndex = learningUnits.findIndex((unit) => unit.key === activeUnit.key)
   const selectUnit = (unitKey) => {
-    if (unitKey === 'extreme-temperature') {
-      navigate('/course/extreme-temperature/1')
-      return
-    }
-    if (unitKey === 'vibration') {
-      navigate('/course/vibration-risks/1')
-      return
-    }
-    if (unitKey === 'electricity') {
-      navigate('/course/electrical-risks/1')
-      return
-    }
-    if (unitKey === 'xray') {
-      navigate('/course/radiation-risks/1')
-      return
-    }
-    setSearchParams({ unit: unitKey })
+    navigate(getUnitPath(unitKey))
   }
 
   const goToNext = () => {
@@ -67,10 +52,7 @@ export function CourseLearnPage() {
   }
 
   const handlePhysicalModuleIntroBack = () => {
-    skipInteractiveResetOnUnitChangeRef.current = true
-    setSearchParams({ unit: 'chemical' })
-    setIsInteractiveStep(true)
-    setLessonIndexInModule(1)
+    navigate('/course/program/lesson/1')
   }
 
   const handlePhysicalRisksPage2Back = () => {
@@ -91,6 +73,10 @@ export function CourseLearnPage() {
     }
     setIsInteractiveStep(false)
   }, [activeUnit.key])
+
+  if (currentUnitKey === 'chemical') {
+    return <Navigate to="/course/program/lesson/1" replace />
+  }
 
   return (
     <LearningLayout
