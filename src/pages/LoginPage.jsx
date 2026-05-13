@@ -22,6 +22,12 @@ export function LoginPage() {
     }
   }, [bootstrapping, hasUsers, navigate])
 
+  useEffect(() => {
+    if (!isAuthenticated || bootstrapping) return
+    const target = from.startsWith('/') ? from : '/dashboard'
+    navigate(target, { replace: true })
+  }, [isAuthenticated, bootstrapping, from, navigate])
+
   if (bootstrapping) {
     return (
       <div className="auth-loading" dir="rtl">
@@ -31,7 +37,8 @@ export function LoginPage() {
   }
 
   if (isAuthenticated) {
-    return <Navigate to={from.startsWith('/') ? from : '/dashboard'} replace />
+    const target = from.startsWith('/') ? from : '/dashboard'
+    return <Navigate to={target} replace />
   }
 
   async function submitLogin() {
@@ -45,7 +52,6 @@ export function LoginPage() {
     setSubmitting(true)
     try {
       await login({ employeeNumber: emp, password })
-      navigate(from.startsWith('/') ? from : '/dashboard', { replace: true })
     } catch (err) {
       setErrorType(err?.code ? String(err.code) : String(err?.status ?? 'unknown'))
       setError(mapAuthErrorMessage(err, 'حدث خطأ أثناء تسجيل الدخول'))
@@ -127,7 +133,7 @@ export function LoginPage() {
           </form>
 
           <p className="auth-footer">
-            <Link className="auth-link" to="/register">
+            <Link className="auth-link" to="/register" replace={false}>
               تسجيل حساب جديد
             </Link>
           </p>

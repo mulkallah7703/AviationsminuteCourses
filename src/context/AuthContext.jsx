@@ -15,6 +15,8 @@ import {
 
 const AuthContext = createContext(null)
 
+const INIT_TIMEOUT_MS = 14_000
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [accessToken, setAccessToken] = useState(() => getStoredAccessToken())
@@ -22,6 +24,14 @@ export function AuthProvider({ children }) {
   const [authServiceError, setAuthServiceError] = useState('')
   const [bootstrapping, setBootstrapping] = useState(true)
   const refreshPromiseRef = useRef(null)
+  const sessionGenerationRef = useRef(0)
+
+  const isSessionCurrent = useCallback((generation) => generation === sessionGenerationRef.current, [])
+
+  const bumpSessionGeneration = useCallback(() => {
+    sessionGenerationRef.current += 1
+    return sessionGenerationRef.current
+  }, [])
 
   const applySession = useCallback((payload) => {
     if (payload?.accessToken) {
@@ -38,27 +48,38 @@ export function AuthProvider({ children }) {
   }, [])
 
   const clearSession = useCallback(() => {
+    bumpSessionGeneration()
     setUser(null)
     setAccessToken(null)
     clearStoredTokens()
-  }, [])
+  }, [bumpSessionGeneration])
 
   const tryRefresh = useCallback(async () => {
     if (refreshPromiseRef.current) return refreshPromiseRef.current
 
+    const generation = sessionGenerationRef.current
     const { refreshToken, refreshJwt } = getStoredRefreshBundle()
     if (!refreshToken && !refreshJwt) {
-      clearSession()
+      if (isSessionCurrent(generation)) {
+        setUser(null)
+        setAccessToken(null)
+        clearStoredTokens()
+      }
       return null
     }
 
     refreshPromiseRef.current = (async () => {
       try {
         const data = await refreshTokens({ refreshToken, refreshJwt })
+        if (!isSessionCurrent(generation)) return null
         applySession(data)
         return data.accessToken
       } catch {
-        clearSession()
+        if (isSessionCurrent(generation)) {
+          setUser(null)
+          setAccessToken(null)
+          clearStoredTokens()
+        }
         return null
       } finally {
         refreshPromiseRef.current = null
@@ -66,20 +87,25 @@ export function AuthProvider({ children }) {
     })()
 
     return refreshPromiseRef.current
-  }, [applySession, clearSession])
+  }, [applySession, isSessionCurrent])
 
   const loadSession = useCallback(async () => {
+    const generation = sessionGenerationRef.current
     const token = getStoredAccessToken()
     const bundle = getStoredRefreshBundle()
+
     if (!token && !bundle.refreshToken && !bundle.refreshJwt) {
-      setUser(null)
-      setAccessToken(null)
+      if (isSessionCurrent(generation)) {
+        setUser(null)
+        setAccessToken(null)
+      }
       return
     }
 
     if (token) {
       try {
         const data = await fetchMe(token)
+        if (!isSessionCurrent(generation)) return
         setUser(data.user)
         setAccessToken(token)
         return
@@ -88,65 +114,91 @@ export function AuthProvider({ children }) {
       }
     }
 
+    if (!isSessionCurrent(generation)) return
+
     const refreshed = await tryRefresh()
+    if (!isSessionCurrent(generation)) return
+
     if (refreshed) {
       try {
         const data = await fetchMe(refreshed)
+        if (!isSessionCurrent(generation)) return
         setUser(data.user)
         setAccessToken(refreshed)
       } catch {
-        clearSession()
+        if (isSessionCurrent(generation)) {
+          setUser(null)
+          setAccessToken(null)
+          clearStoredTokens()
+        }
       }
     }
-  }, [clearSession, tryRefresh])
+  }, [isSessionCurrent, tryRefresh])
 
   useEffect(() => {
     let cancelled = false
 
-      ; (async () => {
-        try {
-          const b = await fetchBootstrap()
-          if (!cancelled) {
-            setHasUsers(Boolean(b.hasUsers))
-            setAuthServiceError('')
-          }
-        } catch (error) {
-          if (!cancelled) {
-            /* Unknown — do not assume users exist (would block /register when API is down). */
-            setHasUsers(null)
-            setAuthServiceError(mapAuthErrorMessage(error, 'تعذر الاتصال بالخدمة'))
-          }
-        }
+    const finishBootstrap = () => {
+      if (!cancelled) setBootstrapping(false)
+    }
 
-        await loadSession()
-        if (!cancelled) setBootstrapping(false)
-      })()
+    const initTimer = window.setTimeout(finishBootstrap, INIT_TIMEOUT_MS)
+
+    ;(async () => {
+      const [bootstrapResult] = await Promise.allSettled([
+        fetchBootstrap(),
+        loadSession(),
+      ])
+
+      if (!cancelled && bootstrapResult.status === 'fulfilled') {
+        setHasUsers(Boolean(bootstrapResult.value.hasUsers))
+        setAuthServiceError('')
+      } else if (!cancelled && bootstrapResult.status === 'rejected') {
+        setHasUsers(null)
+        setAuthServiceError(
+          mapAuthErrorMessage(bootstrapResult.reason, 'تعذر الاتصال بالخدمة'),
+        )
+      }
+
+      window.clearTimeout(initTimer)
+      finishBootstrap()
+    })()
 
     return () => {
       cancelled = true
+      window.clearTimeout(initTimer)
     }
   }, [loadSession])
 
   const login = useCallback(
     async ({ employeeNumber, password }) => {
       const data = await loginUser({ employeeNumber, password })
+      bumpSessionGeneration()
       applySession(data)
       setUser(data.user)
       setAccessToken(data.accessToken)
+      return data
     },
-    [applySession],
+    [applySession, bumpSessionGeneration],
   )
 
-  const register = useCallback(async ({ fullName, employeeNumber, password, confirmPassword }) => {
-    await registerUser({ fullName, employeeNumber, password, confirmPassword })
-    try {
-      const b = await fetchBootstrap()
-      setHasUsers(Boolean(b.hasUsers))
-    } catch {
-      /* Account exists even if follow-up bootstrap fails (e.g. transient network). */
+  const register = useCallback(
+    async ({ fullName, employeeNumber, password, confirmPassword }) => {
+      await registerUser({ fullName, employeeNumber, password, confirmPassword })
       setHasUsers(true)
-    }
-  }, [])
+
+      const data = await loginUser({
+        employeeNumber: employeeNumber.trim(),
+        password,
+      })
+      bumpSessionGeneration()
+      applySession(data)
+      setUser(data.user)
+      setAccessToken(data.accessToken)
+      return data
+    },
+    [applySession, bumpSessionGeneration],
+  )
 
   const logout = useCallback(async () => {
     const token = getStoredAccessToken()
@@ -173,6 +225,7 @@ export function AuthProvider({ children }) {
       reloadBootstrap: async () => {
         const b = await fetchBootstrap()
         setHasUsers(Boolean(b.hasUsers))
+        setAuthServiceError('')
       },
     }),
     [

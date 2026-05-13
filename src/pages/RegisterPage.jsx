@@ -15,8 +15,9 @@ function passwordStrengthSegments(password) {
 }
 
 export function RegisterPage() {
-  const { register, hasUsers, bootstrapping, isAuthenticated, authServiceError } = useAuth()
+  const { register, bootstrapping, isAuthenticated, authServiceError } = useAuth()
   const navigate = useNavigate()
+
   const [fullName, setFullName] = useState('')
   const [employeeNumber, setEmployeeNumber] = useState('')
   const [password, setPassword] = useState('')
@@ -26,18 +27,9 @@ export function RegisterPage() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    if (!bootstrapping && hasUsers && !success) {
-      navigate('/login', { replace: true })
-    }
-  }, [bootstrapping, hasUsers, success, navigate])
-
-  useEffect(() => {
-    if (!success) return undefined
-    const timer = window.setTimeout(() => {
-      navigate('/login', { replace: true })
-    }, 2200)
-    return () => window.clearTimeout(timer)
-  }, [success, navigate])
+    if (!isAuthenticated || bootstrapping) return
+    navigate('/dashboard', { replace: true })
+  }, [isAuthenticated, bootstrapping, navigate])
 
   if (bootstrapping) {
     return (
@@ -80,12 +72,7 @@ export function RegisterPage() {
   return (
     <div className="auth-page auth-page--split" dir="rtl">
       <aside className="auth-aside" aria-hidden>
-        <div className="auth-aside__inner">
-          <h2 className="auth-aside__title">منصة التدريب التفاعلي</h2>
-          <p className="auth-aside__text">
-            أنشئ حسابك للوصول إلى المحتوى التدريبي والمسارات المحمية بأمان.
-          </p>
-        </div>
+        <RegisterAside />
       </aside>
 
       <div className="auth-panel">
@@ -93,7 +80,7 @@ export function RegisterPage() {
           <div className="auth-card__accent" aria-hidden />
           <h1 className="auth-card__title">إنشاء حساب جديد</h1>
           <p className="auth-card__hint">
-            أدخل البيانات بدقة. بعد التسجيل ستنتقل إلى صفحة تسجيل الدخول تلقائيًا.
+            أدخل البيانات بدقة. بعد التسجيل ستُسجَّل دخولك تلقائيًا إلى لوحة التحكم.
           </p>
 
           {authServiceError ? (
@@ -109,7 +96,7 @@ export function RegisterPage() {
               </span>
               <div>
                 <strong className="auth-success__title">تم إنشاء الحساب بنجاح</strong>
-                <p className="auth-success__sub">جاري تحويلك إلى تسجيل الدخول…</p>
+                <p className="auth-success__sub">جاري تحويلك إلى لوحة التحكم…</p>
               </div>
             </div>
           ) : null}
@@ -138,45 +125,13 @@ export function RegisterPage() {
                 />
                 <span className="auth-field__hint">4–32 حرفًا: أحرف وأرقام، شرطة أو شرطة سفلية.</span>
               </label>
-              <div className="auth-field-row">
-                <label className="auth-field">
-                  <span>كلمة المرور</span>
-                  <input
-                    type="password"
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={8}
-                    disabled={submitting}
-                  />
-                  <div className="auth-strength" aria-hidden>
-                    {[0, 1, 2, 3].map((i) => (
-                      <span
-                        key={i}
-                        className={`auth-strength__seg ${
-                          i < passwordStrengthSegments(password) ? 'is-on' : ''
-                        }`.trim()}
-                      />
-                    ))}
-                  </div>
-                  <span className="auth-field__hint">
-                    8 أحرف على الأقل، وحرف كبير وصغير ورقم إنجليزي.
-                  </span>
-                </label>
-                <label className="auth-field">
-                  <span>تأكيد كلمة المرور</span>
-                  <input
-                    type="password"
-                    autoComplete="new-password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    minLength={8}
-                    disabled={submitting}
-                  />
-                </label>
-              </div>
+              <RegisterPasswordFields
+                password={password}
+                confirmPassword={confirmPassword}
+                submitting={submitting}
+                onPasswordChange={setPassword}
+                onConfirmPasswordChange={setConfirmPassword}
+              />
               {error ? (
                 <p className="auth-error" role="alert">
                   {error}
@@ -197,6 +152,67 @@ export function RegisterPage() {
           ) : null}
         </div>
       </div>
+    </div>
+  )
+}
+
+function RegisterAside() {
+  return (
+    <div className="auth-aside__inner">
+      <h2 className="auth-aside__title">منصة التدريب التفاعلي</h2>
+      <p className="auth-aside__text">
+        أنشئ حسابك للوصول إلى المحتوى التدريبي والمسارات المحمية بأمان.
+      </p>
+    </div>
+  )
+}
+
+function RegisterPasswordFields({
+  password,
+  confirmPassword,
+  submitting,
+  onPasswordChange,
+  onConfirmPasswordChange,
+}) {
+  return (
+    <div className="auth-field-row">
+      <label className="auth-field">
+        <span>كلمة المرور</span>
+        <input
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(e) => onPasswordChange(e.target.value)}
+          required
+          minLength={8}
+          disabled={submitting}
+        />
+        <div className="auth-strength" aria-hidden>
+          {[0, 1, 2, 3].map((i) => (
+            <span
+              key={i}
+              className={`auth-strength__seg ${
+                i < passwordStrengthSegments(password) ? 'is-on' : ''
+              }`.trim()}
+            />
+          ))}
+        </div>
+        <span className="auth-field__hint">
+          8 أحرف على الأقل، وحرف كبير وصغير ورقم إنجليزي.
+        </span>
+      </label>
+      <label className="auth-field">
+        <span>تأكيد كلمة المرور</span>
+        <input
+          type="password"
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(e) => onConfirmPasswordChange(e.target.value)}
+          required
+          minLength={8}
+          disabled={submitting}
+        />
+      </label>
     </div>
   )
 }

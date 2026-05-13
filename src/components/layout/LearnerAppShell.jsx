@@ -255,9 +255,9 @@ export function LearnerAppShell() {
         </header>
 
         <main className="min-w-0 flex-1">
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             <motion.div
-              key={location.pathname + location.hash}
+              key={location.pathname}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
