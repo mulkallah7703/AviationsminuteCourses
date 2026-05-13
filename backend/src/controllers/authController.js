@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 import { validationResult } from 'express-validator'
 import {
   clearRefreshToken,
@@ -19,11 +19,14 @@ import {
 
 export const REFRESH_COOKIE_NAME = 'lms_rt'
 
+const isSecureCookie =
+  process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL)
+
 function refreshCookieOptions() {
   return {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecureCookie,
     path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   }
@@ -34,7 +37,7 @@ function clearRefreshCookie(res) {
     path: '/',
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecureCookie,
   })
 }
 
