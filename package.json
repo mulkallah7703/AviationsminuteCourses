@@ -13,6 +13,8 @@
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
     "build": "prisma generate && vite build",
+    "start:api": "node backend/src/index.js",
+    "start:prod": "npm run build && pm2 start ecosystem.config.cjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "gen:secret": "node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\""

@@ -25,6 +25,7 @@ export function AuthProvider({ children }) {
   const [bootstrapping, setBootstrapping] = useState(true)
   const refreshPromiseRef = useRef(null)
   const sessionGenerationRef = useRef(0)
+  const bootstrapStartedRef = useRef(false)
 
   const isSessionCurrent = useCallback((generation) => generation === sessionGenerationRef.current, [])
 
@@ -60,11 +61,6 @@ export function AuthProvider({ children }) {
     const generation = sessionGenerationRef.current
     const { refreshToken, refreshJwt } = getStoredRefreshBundle()
     if (!refreshToken && !refreshJwt) {
-      if (isSessionCurrent(generation)) {
-        setUser(null)
-        setAccessToken(null)
-        clearStoredTokens()
-      }
       return null
     }
 
@@ -73,12 +69,10 @@ export function AuthProvider({ children }) {
         const data = await refreshTokens({ refreshToken, refreshJwt })
         if (!isSessionCurrent(generation)) return null
         applySession(data)
-        return data.accessToken
+        return data
       } catch {
         if (isSessionCurrent(generation)) {
-          setUser(null)
-          setAccessToken(null)
-          clearStoredTokens()
+          clearSession()
         }
         return null
       } finally {
@@ -87,7 +81,7 @@ export function AuthProvider({ children }) {
     })()
 
     return refreshPromiseRef.current
-  }, [applySession, isSessionCurrent])
+  }, [applySession, clearSession, isSessionCurrent])
 
   const loadSession = useCallback(async () => {
     const generation = sessionGenerationRef.current
@@ -95,10 +89,6 @@ export function AuthProvider({ children }) {
     const bundle = getStoredRefreshBundle()
 
     if (!token && !bundle.refreshToken && !bundle.refreshJwt) {
-      if (isSessionCurrent(generation)) {
-        setUser(null)
-        setAccessToken(null)
-      }
       return
     }
 
@@ -117,25 +107,16 @@ export function AuthProvider({ children }) {
     if (!isSessionCurrent(generation)) return
 
     const refreshed = await tryRefresh()
-    if (!isSessionCurrent(generation)) return
+    if (!isSessionCurrent(generation) || !refreshed) return
 
-    if (refreshed) {
-      try {
-        const data = await fetchMe(refreshed)
-        if (!isSessionCurrent(generation)) return
-        setUser(data.user)
-        setAccessToken(refreshed)
-      } catch {
-        if (isSessionCurrent(generation)) {
-          setUser(null)
-          setAccessToken(null)
-          clearStoredTokens()
-        }
-      }
-    }
+    setUser(refreshed.user)
+    setAccessToken(refreshed.accessToken)
   }, [isSessionCurrent, tryRefresh])
 
   useEffect(() => {
+    if (bootstrapStartedRef.current) return undefined
+    bootstrapStartedRef.current = true
+
     let cancelled = false
 
     const finishBootstrap = () => {
@@ -145,16 +126,24 @@ export function AuthProvider({ children }) {
     const initTimer = window.setTimeout(finishBootstrap, INIT_TIMEOUT_MS)
 
     ;(async () => {
+      const bootstrapGeneration = sessionGenerationRef.current
+
       const [bootstrapResult] = await Promise.allSettled([
         fetchBootstrap(),
         loadSession(),
       ])
 
-      if (!cancelled && bootstrapResult.status === 'fulfilled') {
+      if (cancelled) return
+
+      if (bootstrapResult.status === 'fulfilled') {
         setHasUsers(Boolean(bootstrapResult.value.hasUsers))
         setAuthServiceError('')
-      } else if (!cancelled && bootstrapResult.status === 'rejected') {
-        setHasUsers(null)
+      } else {
+        const storedToken = getStoredAccessToken()
+        const sessionAlive =
+          bootstrapGeneration === sessionGenerationRef.current && Boolean(storedToken)
+
+        setHasUsers(sessionAlive ? true : null)
         setAuthServiceError(
           mapAuthErrorMessage(bootstrapResult.reason, 'تعذر الاتصال بالخدمة'),
         )
@@ -168,7 +157,8 @@ export function AuthProvider({ children }) {
       cancelled = true
       window.clearTimeout(initTimer)
     }
-  }, [loadSession])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- bootstrap runs once on mount
+  }, [])
 
   const login = useCallback(
     async ({ employeeNumber, password }) => {
@@ -177,6 +167,8 @@ export function AuthProvider({ children }) {
       applySession(data)
       setUser(data.user)
       setAccessToken(data.accessToken)
+      setHasUsers(true)
+      setAuthServiceError('')
       return data
     },
     [applySession, bumpSessionGeneration],
@@ -185,7 +177,6 @@ export function AuthProvider({ children }) {
   const register = useCallback(
     async ({ fullName, employeeNumber, password, confirmPassword }) => {
       await registerUser({ fullName, employeeNumber, password, confirmPassword })
-      setHasUsers(true)
 
       const data = await loginUser({
         employeeNumber: employeeNumber.trim(),
@@ -195,6 +186,8 @@ export function AuthProvider({ children }) {
       applySession(data)
       setUser(data.user)
       setAccessToken(data.accessToken)
+      setHasUsers(true)
+      setAuthServiceError('')
       return data
     },
     [applySession, bumpSessionGeneration],

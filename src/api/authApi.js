@@ -84,6 +84,18 @@ async function parseJsonSafe(res) {
   }
 }
 
+function rejectMisroutedResponse(data) {
+  if (data?._htmlResponse) {
+    throw new ApiError(
+      'واجهة البرنامج تستقبل طلبات API بدل الخادم — راجع إعداد Nginx وعملية PM2',
+      {
+        status: 503,
+        code: 'SERVICE_UNAVAILABLE',
+      },
+    )
+  }
+}
+
 function classifyNetworkError(error) {
   if (error?.name === 'AbortError') {
     return new ApiError('انتهت مهلة الاتصال — جاري إعادة المحاولة', {
@@ -148,6 +160,7 @@ async function request(path, options = {}) {
       signal: controller.signal,
     })
     const data = await parseJsonSafe(res)
+    rejectMisroutedResponse(data)
     if (!res.ok) {
       throw mapHttpError(res.status, data, 'حدث خطأ أثناء معالجة الطلب.')
     }
@@ -174,8 +187,25 @@ async function requestWithRetry(path, options = {}, maxAttempts = API_MAX_RETRIE
   throw lastErr
 }
 
+function assertSessionPayload(data, fallbackMessage) {
+  if (!data?.accessToken || !data?.user?.id) {
+    throw new ApiError(fallbackMessage, {
+      status: 502,
+      code: 'INVALID_AUTH_RESPONSE',
+    })
+  }
+  return data
+}
+
 export async function fetchBootstrap() {
-  return requestWithRetry('/api/auth/bootstrap', { method: 'GET' }, 4)
+  const data = await requestWithRetry('/api/auth/bootstrap', { method: 'GET' }, 4)
+  if (typeof data?.hasUsers !== 'boolean') {
+    throw new ApiError('استجابة bootstrap غير صالحة من الخادم', {
+      status: 502,
+      code: 'INVALID_AUTH_RESPONSE',
+    })
+  }
+  return data
 }
 
 export async function registerUser({ fullName, employeeNumber, password, confirmPassword }) {
@@ -187,20 +217,28 @@ export async function registerUser({ fullName, employeeNumber, password, confirm
 }
 
 export async function loginUser({ employeeNumber, password }) {
-  return request('/api/auth/login', {
+  const data = await request('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ employeeNumber, password }),
   })
+  return assertSessionPayload(data, 'استجابة تسجيل الدخول غير صالحة من الخادم')
 }
 
 export async function fetchMe(accessToken) {
-  return request('/api/auth/me', {
+  const data = await request('/api/auth/me', {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
   })
+  if (!data?.user?.id) {
+    throw new ApiError('استجابة الملف الشخصي غير صالحة من الخادم', {
+      status: 502,
+      code: 'INVALID_AUTH_RESPONSE',
+    })
+  }
+  return data
 }
 
 export async function logoutRequest(accessToken) {
@@ -217,7 +255,7 @@ export async function logoutRequest(accessToken) {
 }
 
 export async function refreshTokens({ refreshToken, refreshJwt }) {
-  return request('/api/auth/refresh', {
+  const data = await request('/api/auth/refresh', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -225,11 +263,15 @@ export async function refreshTokens({ refreshToken, refreshJwt }) {
       refreshJwt: refreshJwt ?? '',
     }),
   })
+  return assertSessionPayload(data, 'استجابة تجديد الجلسة غير صالحة من الخادم')
 }
 
 export function mapAuthErrorMessage(error, fallback = 'حدث خطأ غير متوقع') {
   if (!error) return fallback
 
+  if (error.code === 'INVALID_AUTH_RESPONSE') {
+    return 'استجابة المصادقة غير صالحة — تحقق من تشغيل خادم API وإعداد Nginx'
+  }
   if (error.code === 'DB_UNAVAILABLE') {
     return 'تعذر الاتصال بقاعدة البيانات حالياً'
   }

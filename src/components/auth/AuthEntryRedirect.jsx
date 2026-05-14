@@ -16,7 +16,6 @@ export function AuthEntryRedirect() {
     return <Navigate to="/dashboard" replace />
   }
 
-  /* Bootstrap failed or unavailable: default to login (register remains reachable via link). */
   if (hasUsers === null) {
     return <Navigate to="/login" replace />
   }

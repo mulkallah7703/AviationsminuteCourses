@@ -17,10 +17,10 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    if (!bootstrapping && hasUsers === false) {
+    if (!bootstrapping && hasUsers === false && !isAuthenticated) {
       navigate('/register', { replace: true })
     }
-  }, [bootstrapping, hasUsers, navigate])
+  }, [bootstrapping, hasUsers, isAuthenticated, navigate])
 
   useEffect(() => {
     if (!isAuthenticated || bootstrapping) return
