@@ -42,6 +42,7 @@ export function ProtectedVideoPlayer({
   initialLastPosition = 0,
   onWatchProgress,
   onCompleted,
+  autoPlay = false,
   className = '',
 }) {
   const containerRef = useRef(null)
@@ -145,7 +146,10 @@ export function ProtectedVideoPlayer({
     }
     setDisplayTime(video.currentTime)
     emitProgress(video)
-  }, [emitProgress, initialLastPosition])
+    if (autoPlay) {
+      video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false))
+    }
+  }, [autoPlay, emitProgress, initialLastPosition])
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current

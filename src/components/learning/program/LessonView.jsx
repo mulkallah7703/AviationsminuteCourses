@@ -1,7 +1,8 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Lock } from 'lucide-react'
 import { ProtectedVideoPlayer } from './ProtectedVideoPlayer.jsx'
+import { ProgramStepNavigation } from './ProgramStepNavigation.jsx'
 import { PROGRAM_COURSE_TITLE } from '../../../data/programCourse'
 
 export function LessonView({
@@ -15,10 +16,23 @@ export function LessonView({
   onPrevious,
   onNext,
   canGoPrevious,
+  quizDoneForModule = false,
+  onReturnToCourses,
+  onReturnToOverview,
 }) {
   const { video, lessonTitle } = module
   const progress = ((moduleIndex + 1) / totalModules) * 100
+  const [searchParams] = useSearchParams()
+  const autoplay = searchParams.get('autoplay') === '1'
+  const videoSectionRef = useRef(null)
   const [completedLocally, setCompletedLocally] = useState(videoComplete)
+
+  useEffect(() => {
+    if (!autoplay) return
+    videoSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const shell = document.querySelector('.learner-shell-scroll')
+    shell?.scrollTo?.({ top: 0, behavior: 'smooth' })
+  }, [autoplay, module.id])
 
   const canGoNext = videoComplete || completedLocally
 
@@ -75,6 +89,7 @@ export function LessonView({
         </header>
 
         <motion.div
+          ref={videoSectionRef}
           key={`video-${module.id}`}
           initial={{ opacity: 0, scale: 0.99 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -87,6 +102,7 @@ export function LessonView({
             initialLastPosition={watchRecord?.lastPosition ?? 0}
             onWatchProgress={onWatchProgress}
             onCompleted={handleCompleted}
+            autoPlay={autoplay}
           />
         </motion.div>
 
@@ -94,27 +110,18 @@ export function LessonView({
           <p className="text-sm leading-relaxed text-slate-500">{video.description}</p>
         ) : null}
 
-        <nav className="mt-auto flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:pt-6">
-          <button
-            type="button"
-            onClick={onPrevious}
-            disabled={!canGoPrevious}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white transition enabled:hover:bg-white/10 disabled:opacity-35 sm:w-auto sm:px-5"
-          >
-            <ChevronRight className="h-4 w-4" />
-            السابق
-          </button>
-          <button
-            type="button"
-            onClick={onNext}
-            disabled={!canGoNext}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-l from-cyan-500 to-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-900/25 transition enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:px-6"
-          >
-            {!canGoNext ? <Lock className="h-4 w-4" /> : null}
-            التالي
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-        </nav>
+        <ProgramStepNavigation
+          variant="lesson"
+          moduleId={module.id}
+          canGoPrevious={canGoPrevious}
+          onPrevious={onPrevious}
+          onNext={onNext}
+          nextDisabled={!canGoNext}
+          nextLabel={canGoNext ? 'التالي — الاختبار' : 'التالي'}
+          quizDone={quizDoneForModule}
+          onReturnToCourses={onReturnToCourses}
+          onReturnToOverview={onReturnToOverview}
+        />
       </motion.div>
     </motion.div>
   )

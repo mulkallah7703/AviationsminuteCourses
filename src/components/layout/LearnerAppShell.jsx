@@ -239,7 +239,7 @@ export function LearnerAppShell() {
         </div>
       </aside>
 
-      <div className="flex min-h-0 min-h-full min-w-0 flex-1 flex-col overflow-y-auto scroll-smooth overscroll-y-contain bg-slate-950">
+      <div className="learner-shell-scroll flex min-h-0 min-h-full min-w-0 flex-1 flex-col overflow-y-auto scroll-smooth overscroll-y-contain bg-slate-950">
         <header className="sticky top-0 z-30 flex shrink-0 items-center gap-3 border-b border-slate-200/90 bg-[var(--bg)]/95 px-3 py-2.5 backdrop-blur-md md:hidden">
           <button
             type="button"

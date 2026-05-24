@@ -1,8 +1,7 @@
 export const PROGRAM_COURSE_ID = 'hazards-program'
 export const PROGRAM_COURSE_TITLE = 'برنامج التوعية التفاعلي'
 
-export const PROTECTED_DEMO_VIDEO =
-  'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
+export const PROTECTED_DEMO_VIDEO = '/video1.mp4'
 
 /**
  * Each module = one protected video lesson + one quiz.

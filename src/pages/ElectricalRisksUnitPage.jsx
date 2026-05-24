@@ -10,8 +10,7 @@ import { ElectricalChrome } from '../components/course-ui/ElectricalChrome'
 const TOTAL_PAGES = 5
 const LS_KEY = 'electrical-risks-unit'
 
-const DEMO_VIDEO =
-  'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
+const DEMO_VIDEO = '/video1.mp4'
 
 const STEP_HEADINGS = [
   'INTRODUCTION',

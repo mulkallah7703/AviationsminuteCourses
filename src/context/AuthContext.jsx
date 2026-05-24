@@ -22,10 +22,9 @@ export function AuthProvider({ children }) {
   const [accessToken, setAccessToken] = useState(() => getStoredAccessToken())
   const [hasUsers, setHasUsers] = useState(null)
   const [authServiceError, setAuthServiceError] = useState('')
-  const [bootstrapping, setBootstrapping] = useState(true)
+  const [bootstrapping, setBootstrapping] = useState(false)
   const refreshPromiseRef = useRef(null)
   const sessionGenerationRef = useRef(0)
-  const bootstrapStartedRef = useRef(false)
 
   const isSessionCurrent = useCallback((generation) => generation === sessionGenerationRef.current, [])
 
@@ -114,15 +113,13 @@ export function AuthProvider({ children }) {
   }, [isSessionCurrent, tryRefresh])
 
   useEffect(() => {
-    if (bootstrapStartedRef.current) return undefined
-    bootstrapStartedRef.current = true
-
     let cancelled = false
 
     const finishBootstrap = () => {
       if (!cancelled) setBootstrapping(false)
     }
 
+    setBootstrapping(true)
     const initTimer = window.setTimeout(finishBootstrap, INIT_TIMEOUT_MS)
 
     ;(async () => {
@@ -156,6 +153,7 @@ export function AuthProvider({ children }) {
     return () => {
       cancelled = true
       window.clearTimeout(initTimer)
+      setBootstrapping(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- bootstrap runs once on mount
   }, [])

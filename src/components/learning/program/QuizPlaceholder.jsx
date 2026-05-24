@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
-import { CheckCircle2, ChevronLeft, ChevronRight, Lock, Sparkles } from 'lucide-react'
+import { CheckCircle2, Sparkles } from 'lucide-react'
+import { ProgramStepNavigation } from './ProgramStepNavigation.jsx'
 
 export function QuizPlaceholder({
   title,
@@ -7,14 +8,19 @@ export function QuizPlaceholder({
   totalModules,
   alreadyCompleted,
   onPrevious,
-  onNext,
+  onSubmitQuiz,
   isLastQuiz,
   canSubmit,
+  moduleId,
+  onGoToNextLesson,
+  onReturnToCourses,
+  onReviewCourse,
+  onReturnToOverview,
 }) {
   return (
     <motion.div className="relative flex min-h-full flex-1 flex-col" dir="rtl" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <motion.div
-        className="relative mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-8 px-4 py-10 md:px-8"
+        className="relative mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-10 md:px-8"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
       >
@@ -27,7 +33,7 @@ export function QuizPlaceholder({
         </header>
 
         <motion.div
-          className={`w-full rounded-3xl border p-10 text-center shadow-2xl backdrop-blur-xl md:p-14 ${
+          className={`w-full flex-1 rounded-3xl border p-10 text-center shadow-2xl backdrop-blur-xl md:p-14 ${
             alreadyCompleted
               ? 'border-emerald-500/25 bg-emerald-500/5'
               : 'border-white/10 bg-white/[0.04]'
@@ -40,7 +46,7 @@ export function QuizPlaceholder({
               <CheckCircle2 className="mx-auto mb-4 h-14 w-14 text-emerald-400" />
               <p className="text-xl font-semibold text-emerald-300 md:text-2xl">تم إكمال الاختبار</p>
               <p className="mx-auto mt-4 max-w-md text-sm text-slate-400">
-                لا يمكن إعادة المحاولة — تم تسجيل إكمالك لهذا الاختبار.
+                يمكنك الانتقال للدرس التالي أو مراجعة الدورة في أي وقت.
               </p>
             </>
           ) : (
@@ -61,28 +67,20 @@ export function QuizPlaceholder({
           )}
         </motion.div>
 
-        <nav className="flex w-full items-center justify-between gap-4 border-t border-white/10 pt-6">
-          <button
-            type="button"
-            onClick={onPrevious}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10"
-          >
-            <ChevronRight className="h-4 w-4" />
-            السابق
-          </button>
-          {!alreadyCompleted ? (
-            <button
-              type="button"
-              onClick={onNext}
-              disabled={!canSubmit}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-cyan-500 to-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-900/25 transition enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {!canSubmit ? <Lock className="h-4 w-4" /> : null}
-              {isLastQuiz ? 'إنهاء البرنامج' : 'الدرس التالي'}
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-          ) : null}
-        </nav>
+        <ProgramStepNavigation
+          variant="quiz"
+          moduleId={moduleId}
+          canGoPrevious
+          onPrevious={onPrevious}
+          quizDone={alreadyCompleted}
+          isLastQuiz={isLastQuiz}
+          canSubmitQuiz={canSubmit}
+          onSubmitQuiz={onSubmitQuiz}
+          onGoToNextLesson={onGoToNextLesson}
+          onReturnToCourses={onReturnToCourses}
+          onReviewCourse={onReviewCourse}
+          onReturnToOverview={onReturnToOverview}
+        />
       </motion.div>
     </motion.div>
   )
